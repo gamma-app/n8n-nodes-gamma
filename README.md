@@ -361,14 +361,6 @@ Track these to show impact:
 
 ---
 
-## 👥 Contributing
-
-This is an official Gamma integration. For bugs or features:
-- Internal: Message Max directly
-- External (after publishing): GitHub issues
-
----
-
 **Status:** Ready for development  
 **Next Step:** Run setup script to generate node from OpenAPI spec
 
