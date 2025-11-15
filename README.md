@@ -1,4 +1,4 @@
-# @gammatech/n8n-nodes
+# @gammatech/n8n-nodes-gamma
 
 Official Gamma community node for n8n - Create AI-powered presentations, documents, and websites directly from your n8n workflows.
 
@@ -26,7 +26,7 @@ Integrates Gamma's API v1.0 into n8n, allowing you to:
 ```bash
 # In n8n
 Settings → Community Nodes → Install
-# Enter: @gammatech/n8n-nodes
+# Enter: @gammatech/n8n-nodes-gamma
 ```
 
 ### Option 2: Local Development
