@@ -2,7 +2,7 @@
 
 Official Gamma community node for n8n - Create AI-powered presentations, documents, and websites directly from your n8n workflows.
 
-**Status:** In Development  
+**Status:** Published to npm ✅  
 **Created:** November 10, 2025  
 **Maintained by:** Max Jackson (Gamma)
 
