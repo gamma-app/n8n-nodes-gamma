@@ -1,6 +1,6 @@
 {
-  "name": "@gammatech/n8n-nodes-gamma",
-  "version": "0.1.0",
+  "name": "@gammatech/n8n-nodes",
+  "version": "0.1.1",
   "description": "n8n community node for Gamma - Create AI-powered presentations, documents, and websites",
   "keywords": [
     "n8n-community-node-package",
@@ -14,7 +14,7 @@
   "homepage": "https://gamma.app",
   "author": {
     "name": "Max Jackson",
-    "email": "max.jackson@gamma.app"
+    "email": "max@gamma.app"
   },
   "repository": {
     "type": "git",
@@ -25,9 +25,9 @@
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials package.json",
-    "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "npm run build && npx eslint nodes/**/*.ts credentials/**/*.ts --ext .ts"
+    "lint": "eslint nodes credentials --ext .ts,.js",
+    "lintfix": "eslint nodes credentials --ext .ts,.js --fix",
+    "prepublishOnly": "npm run build && npm run lint"
   },
   "files": [
     "dist",
@@ -51,7 +51,6 @@
     "eslint-plugin-n8n-nodes-base": "^1.16.1",
     "gulp": "^4.0.2",
     "js-yaml": "^4.1.1",
-    "n8n-workflow": "^1.0.0",
     "prettier": "^3.3.2",
     "typescript": "^5.5.3"
   },
