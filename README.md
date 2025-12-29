@@ -361,8 +361,16 @@ Track these to show impact:
 
 ---
 
-**Status:** Ready for development  
-**Next Step:** Run setup script to generate node from OpenAPI spec
+## 👥 Contributing
+
+This is an official Gamma integration. For bugs or features:
+- Internal: Message Max directly
+- External (after publishing): GitHub issues
+
+---
+
+**Status:** Published to npm ✅  
+**Next Step:** Continue n8n review / listing workflow as needed
 
 See `docs/SETUP.md` for complete development guide.
 

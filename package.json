@@ -1,6 +1,6 @@
 {
-  "name": "@gammatech/n8n-nodes",
-  "version": "0.1.1",
+  "name": "@gammatech/n8n-nodes-gamma",
+  "version": "0.1.2",
   "description": "n8n community node for Gamma - Create AI-powered presentations, documents, and websites",
   "keywords": [
     "n8n-community-node-package",
