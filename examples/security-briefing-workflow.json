@@ -1,0 +1,166 @@
+{
+  "name": "Gamma: Security Briefing Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "resource": "generation",
+        "operation": "create",
+        "inputText": "Create a daily security briefing presentation covering recent incidents, threat assessments, and regional stability metrics for the Gulf region",
+        "textMode": "generate",
+        "format": "presentation",
+        "numCards": 8,
+        "theme": "dark"
+      },
+      "id": "gamma-briefing",
+      "name": "Gamma: Create Briefing",
+      "type": "n8n-nodes-base.gamma",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "gammaApi": {
+          "id": "1",
+          "name": "Gamma API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "wait-generation",
+      "name": "Wait for Generation",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [680, 300],
+      "webhookId": "generation-wait"
+    },
+    {
+      "parameters": {
+        "resource": "generation",
+        "operation": "get",
+        "generationId": "={{ $('Gamma: Create Briefing').item.json.generationId }}"
+      },
+      "id": "gamma-get",
+      "name": "Gamma: Get Briefing",
+      "type": "n8n-nodes-base.gamma",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "gammaApi": {
+          "id": "1",
+          "name": "Gamma API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "generation",
+        "operation": "export",
+        "generationId": "={{ $('Gamma: Create Briefing').item.json.generationId }}",
+        "format": "pdf"
+      },
+      "id": "gamma-export",
+      "name": "Gamma: Export PDF",
+      "type": "n8n-nodes-base.gamma",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "credentials": {
+        "gammaApi": {
+          "id": "1",
+          "name": "Gamma API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "team@example.com",
+        "subject": "Daily Security Briefing - {{ $now.format('YYYY-MM-DD') }}",
+        "text": "Please find attached the daily security briefing presentation.",
+        "attachments": "={{ $json.exportUrl }}"
+      },
+      "id": "email-send",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP Credentials"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gamma: Create Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gamma: Create Briefing": {
+      "main": [
+        [
+          {
+            "node": "Wait for Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Generation": {
+      "main": [
+        [
+          {
+            "node": "Gamma: Get Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gamma: Get Briefing": {
+      "main": [
+        [
+          {
+            "node": "Gamma: Export PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gamma: Export PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}
