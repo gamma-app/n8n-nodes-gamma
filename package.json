@@ -25,7 +25,8 @@
   },
   "scripts": {
     "build": "tsc && gulp build:icons",
-    "test": "npm run build && node test/presend.js && node test/visibility.js && node test/examples.js",
+    "test": "npm run build && node --test",
+    "test:live": "npm run build && node --test test/live.test.js",
     "sync:enums": "node scripts/sync-api-enums.mjs",
     "sync:enums:check": "node scripts/sync-api-enums.mjs --check",
     "dev": "tsc --watch",

@@ -131,10 +131,46 @@ must restart it — a rebuild alone won't show up.
 | --- | --- |
 | `npm run build` | Compile TypeScript and copy icons into `dist` |
 | `npm run lint` / `lint:fix` | n8n's community-node linter |
-| `npm test` | Parameter paths, visibility rules, example workflows, icon integrity |
+| `npm test` | Full offline suite (see Testing below) |
+| `npm run test:live` | Opt-in tests against the real API; needs `GAMMA_API_KEY` |
 | `npm run dev:n8n` | Local n8n with this node loaded |
 | `npm run sync:enums` | Regenerate `apiEnums.ts` from Gamma's published docs |
 | `npm run sync:enums:check` | Fail if the generated enums are stale (runs in CI) |
+
+---
+
+## 🧪 Testing
+
+`npm test` builds and runs everything offline with Node's built-in test runner —
+no test framework dependency:
+
+| Suite | Covers |
+| --- | --- |
+| `test/presend.test.js` | Every `preSend` hook: parameter paths and request-body composition |
+| `test/routing.test.js` | Method/URL per operation, request defaults, credential auth header |
+| `test/visibility.test.js` | `displayOptions` rules, asserted via n8n's own `displayParameter` |
+| `test/examples.test.js` | Example workflows vs the node schema, icon integrity, manifest |
+| `test/enums.test.js` | The generator's parsing logic, plus the generated enums |
+
+### Live tests
+
+Everything above stops at the HTTP boundary. To exercise the real API:
+
+```bash
+GAMMA_API_KEY=sk-gamma-... npm run test:live
+```
+
+These confirm the credential test endpoint works, that a bad key is rejected,
+and — usefully — whether the undocumented `GET /v1.0/me` endpoint exists, which
+decides whether the `User` resource should stay.
+
+They do **not** spend credits unless you also opt in:
+
+```bash
+GAMMA_API_KEY=... GAMMA_LIVE_GENERATE=1 npm run test:live
+```
+
+That adds a real generation using the one-card-per-item request shape.
 
 ---
 

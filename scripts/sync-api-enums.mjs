@@ -10,6 +10,7 @@
 // fail when the committed output is stale (used in CI).
 
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const OUT = new URL('../nodes/Gamma/apiEnums.ts', import.meta.url);
 const DOCS = 'https://developers.gamma.app';
@@ -19,7 +20,7 @@ const SRC = {
 	languages: `${DOCS}/reference/output-language-accepted-values.md`,
 };
 
-const check = process.argv.includes('--check');
+const isCheck = () => process.argv.includes('--check');
 
 async function get(url) {
 	const r = await fetch(url);
@@ -28,7 +29,7 @@ async function get(url) {
 }
 
 /** Pull the embedded OpenAPI JSON out of a docs page. */
-function extractSpec(md) {
+export function extractSpec(md) {
 	const start = md.indexOf('{"openapi"');
 	if (start === -1) throw new Error('no OpenAPI block found in the docs page');
 	// Walk braces to find the matching close, ignoring braces inside strings.
@@ -46,7 +47,7 @@ function extractSpec(md) {
 }
 
 /** Parse every markdown table row as [col0, col1, ...]. */
-function tableRows(md) {
+export function tableRows(md) {
 	return md.split('\n')
 		.filter((l) => l.trim().startsWith('|'))
 		.map((l) => l.split('|').slice(1, -1).map((c) => c.trim()))
@@ -54,10 +55,11 @@ function tableRows(md) {
 		.filter((cells) => !/^-+$/.test(cells[1]));
 }
 
-const unbacktick = (s) => s.replace(/`/g, '').trim();
+export const unbacktick = (s) => s.replace(/`/g, '').trim();
 // n8n's linter sorts option names with localeCompare; match it exactly.
-const byName = (a, b) => a.name.localeCompare(b.name);
+export const byName = (a, b) => a.name.localeCompare(b.name);
 
+export async function main() {
 const [specMd, modelsMd, langsMd] = await Promise.all([get(SRC.spec), get(SRC.models), get(SRC.languages)]);
 const spec = extractSpec(specMd);
 const schemas = spec.components.schemas;
@@ -190,7 +192,7 @@ export const UNDOCUMENTED_MODEL_VALUES = ${JSON.stringify(modelsOnlyInSpec.sort(
 `;
 
 const prev = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-if (check) {
+if (isCheck()) {
 	if (prev !== out) {
 		console.error('apiEnums.ts is stale. Run `npm run sync:enums` and commit the result.');
 		process.exit(1);
@@ -202,4 +204,10 @@ if (check) {
 		`${specEnums.imageSource.length} image sources, ${specEnums.exportAs.length} export formats`);
 	if (modelsOnlyInSpec.length) console.log(`  (${modelsOnlyInSpec.length} spec-only model values not offered: ${modelsOnlyInSpec.join(', ')})`);
 	if (prev && prev !== out) console.log('  content changed');
+}
+}
+
+// Only do network work when run directly, so tests can import the helpers.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+	await main();
 }

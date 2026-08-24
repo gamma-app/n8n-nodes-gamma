@@ -36,8 +36,17 @@ n8n Creator Portal. No change to what any operation does.
   drift check. The repo previously had no CI beyond publishing.
 - `examples/one-card-per-item.json`: the one-card-per-row recipe —
   join with `\n---\n`, `textMode: preserve`, `cardSplit: inputTextBreaks`.
-- `test/examples.js` validates every example workflow against the node's real
-  schema: node type, parameter nesting, and enum values.
+- A test suite on Node's built-in runner (`node --test`, no framework
+  dependency): **118 offline tests** across five files covering `preSend` hooks,
+  the declarative routing layer, `displayOptions` visibility (asserted through
+  n8n's own `displayParameter`), example workflows against the node schema, icon
+  integrity, the package manifest, and the enum generator's parsing.
+- `npm run test:live`: opt-in tests against the real API, skipped unless
+  `GAMMA_API_KEY` is set. They confirm the credential test endpoint works, that a
+  bad key is rejected, that bearer auth is not accepted, and whether the
+  undocumented `GET /v1.0/me` exists — which decides the fate of the `User`
+  resource. A real generation runs only with `GAMMA_LIVE_GENERATE=1`, so the
+  suite spends no credits by default.
 - `docs/n8n-integration-plan.md`: the full API-coverage review and roadmap.
 
 ### Fixed
