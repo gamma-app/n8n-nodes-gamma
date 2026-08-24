@@ -1,75 +1,52 @@
-# Gamma n8n Node - Example Workflows
+# Example workflows
 
-These are ready-to-import workflows demonstrating common Gamma automation patterns.
+Import a file from this folder into n8n via **Workflows → Import from File**, then
+point the Gamma nodes at your own credential.
 
----
+Both examples are validated against the node's real schema by `npm test`, so the
+node type, parameter names and enum values here are guaranteed to match the
+version of the node in this repo.
 
-## 🔄 auto-polling-workflow.json
+## `one-card-per-item.json` — one card per row or array item
 
-**Auto-polling workflow that waits for generation to complete**
+The pattern for turning CRM rows, form submissions or any list into a deck where
+each item gets its own card.
 
-### What it does:
-1. Creates a Gamma generation
-2. Automatically polls every 30 seconds
-3. Loops until status = "completed"
-4. Outputs the gammaUrl when done
+The mechanics matter, and they are easy to get wrong:
 
-### How to use:
-1. In n8n, click **Workflows** → **Import from File**
-2. Select `auto-polling-workflow.json`
-3. Add your Gamma API credential
-4. Click **Execute Workflow**
-5. It will automatically poll until complete!
+- Gamma splits on a line containing only `---`, i.e. the separator is `\n---\n`.
+  A bare `---` in the middle of a line is not a break.
+- That split only happens when **Card Split** is `Input Text Breaks`. In that
+  mode **Number of Cards is ignored** — and if your text contains no separator
+  at all you get a *single* card, which usually looks like a bug rather than a
+  setting.
+- N separators produce N+1 cards. So `join`, don't wrap: joining 6 rows with
+  `\n---\n` gives 5 separators and 6 cards.
 
-### Why this is better:
-- ✅ No manual clicking "Execute" repeatedly
-- ✅ Automatic retry every 30 seconds
-- ✅ Stops when completed
-- ✅ Better user experience
+The workflow uses **Text Mode: Preserve** as well, which keeps your wording
+exactly as supplied. That is the right choice whenever the text must not be
+reworded — dosages, legal terms, contract clauses, pricing.
 
----
+The Code node is the whole trick:
 
-## 📋 Workflow Pattern
+```js
+const blocks = $input.all()
+  .map((item) => String(item.json.text ?? '').trim())
+  .filter((text) => text.length > 0);
 
-```
-Manual Trigger
-    ↓
-Gamma: Create Generation
-    ↓
-Wait 30 seconds
-    ↓
-Gamma: Check Status ←──────┐
-    ↓                      │
-Is Completed?              │
-    ↓                      │
-  YES → ✅ Done!           │
-    ↓                      │
-   NO → Wait 30s ──────────┘
+return [{ json: { inputText: blocks.join('\n---\n'), cardCount: blocks.length } }];
 ```
 
----
+Swap `item.json.text` for whichever field holds your row content.
 
-## 🎯 Use This Pattern
+## `auto-polling-workflow.json` — generate and wait for the result
 
-**Recommended for all async operations:**
-- Creating presentations
-- Creating documents
-- Exporting to PDF/PPTX
-- Any operation that returns a generationId
+Generation is asynchronous: `Create` returns a `generationId` immediately, and
+`gammaUrl` / `exportUrl` only exist once the status is `completed`.
 
-**Users will love it** because they don't have to manually poll!
+This workflow polls `Get Status` every 5 seconds (the interval Gamma's docs
+recommend) and loops until the status stops being `pending`. Give the loop a
+sensible ceiling for your own use — a long generation can take a few minutes.
 
----
-
-## 🚀 Next Steps
-
-1. Import the workflow
-2. Customize the Create Generation parameters
-3. Save as template for users
-4. Include in your README as a recommended pattern
-
----
-
-**This solves the polling problem!** Include this in your npm package README.
-
-
+Statuses are `pending`, `completed` and `failed`. On `failed`, read the `error`
+object rather than retrying.

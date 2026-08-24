@@ -1,14 +1,27 @@
 {
-  "name": "Gamma: Auto-Polling Generation Workflow",
+  "name": "Gamma: one card per row or array item",
   "nodes": [
     {
       "parameters": {},
-      "id": "manual-trigger",
+      "id": "trigger",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        240,
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One card per incoming item.\n//\n// Gamma splits on a line containing only '---' when cardSplit is\n// inputTextBreaks. N separators produce N+1 cards, and text with no\n// separator produces a single card -- so join, never wrap.\n//\n// Swap `item.json.text` for whichever field holds your row content.\nconst blocks = $input.all()\n  .map((item) => String(item.json.text ?? \"\").trim())\n  .filter((text) => text.length > 0);\n\nif (blocks.length === 0) {\n  throw new Error(\"No non-empty rows to turn into cards\");\n}\n\nreturn [{ json: { inputText: blocks.join(\"\\n---\\n\"), cardCount: blocks.length } }];"
+      },
+      "id": "join",
+      "name": "Join Rows With ---",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
         300
       ]
     },
@@ -16,19 +29,19 @@
       "parameters": {
         "resource": "generation",
         "operation": "create",
-        "inputText": "Create a presentation about the benefits of automation",
-        "textMode": "generate",
+        "inputText": "={{ $json.inputText }}",
+        "textMode": "preserve",
         "format": "presentation",
         "additionalOptions": {
-          "numCards": 10
+          "cardSplit": "inputTextBreaks"
         }
       },
-      "id": "gamma-create",
+      "id": "create",
       "name": "Gamma: Create Generation",
       "type": "@gammatech/n8n-nodes-gamma.gamma",
       "typeVersion": 1,
       "position": [
-        460,
+        440,
         300
       ],
       "credentials": {
@@ -40,18 +53,16 @@
     },
     {
       "parameters": {
-        "amount": 30,
-        "unit": "seconds"
+        "amount": 5
       },
-      "id": "wait-30s",
-      "name": "Wait 30 Seconds",
+      "id": "wait",
+      "name": "Wait 5 Seconds",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        680,
+        660,
         300
-      ],
-      "webhookId": "auto-wait"
+      ]
     },
     {
       "parameters": {
@@ -59,12 +70,12 @@
         "operation": "getStatus",
         "generationId": "={{ $('Gamma: Create Generation').item.json.generationId }}"
       },
-      "id": "gamma-status",
+      "id": "status",
       "name": "Gamma: Check Status",
       "type": "@gammatech/n8n-nodes-gamma.gamma",
       "typeVersion": 1,
       "position": [
-        900,
+        880,
         300
       ],
       "credentials": {
@@ -77,56 +88,71 @@
     {
       "parameters": {
         "conditions": {
-          "string": [
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
             {
-              "value1": "={{ $json.status }}",
-              "operation": "equals",
-              "value2": "completed"
+              "id": "done",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
-          ]
+          ],
+          "combinator": "and"
         }
       },
-      "id": "if-completed",
+      "id": "iscomplete",
       "name": "Is Completed?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [
-        1120,
+        1100,
         300
       ]
     },
     {
+      "parameters": {},
+      "id": "done",
+      "name": "Done - gammaUrl + exportUrl",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
       "parameters": {
-        "amount": 30,
-        "unit": "seconds"
+        "amount": 5
       },
-      "id": "wait-retry",
+      "id": "retry",
       "name": "Wait Before Retry",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1340,
-        400
-      ],
-      "webhookId": "retry-wait"
-    },
-    {
-      "parameters": {
-        "mode": "passThrough"
-      },
-      "id": "completed",
-      "name": "✅ Generation Complete!",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        1560,
-        200
-      ],
-      "notes": "gammaUrl and exportUrl are now available!"
+        1320,
+        420
+      ]
     }
   ],
   "connections": {
     "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Join Rows With ---",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Rows With ---": {
       "main": [
         [
           {
@@ -141,14 +167,14 @@
       "main": [
         [
           {
-            "node": "Wait 30 Seconds",
+            "node": "Wait 5 Seconds",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Wait 30 Seconds": {
+    "Wait 5 Seconds": {
       "main": [
         [
           {
@@ -174,7 +200,7 @@
       "main": [
         [
           {
-            "node": "✅ Generation Complete!",
+            "node": "Done - gammaUrl + exportUrl",
             "type": "main",
             "index": 0
           }
