@@ -5,10 +5,13 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-08-24
 
-Prepares the package for a provenance-signed publish and for submission to the
-n8n Creator Portal. No change to what any operation does.
+Prepares the package for a provenance-signed publish, fixes several requests the
+API could never have accepted, and makes the card-split behaviour legible.
+
+Not yet released: publishing requires npm Trusted Publishers (or an `NPM_TOKEN`
+secret) to be configured first. See `docs/n8n-publishing.md` §3.1.
 
 ### Added
 
