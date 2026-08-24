@@ -1,33 +1,85 @@
-name: Publish to npm
+# Publishes this n8n community node to npm with a provenance attestation.
+#
+# n8n requires community nodes submitted for verification to be published from
+# GitHub Actions with npm provenance (https://docs.npmjs.com/generating-provenance-statements).
+# Provenance is a signed statement tying the published tarball to this repo, this
+# commit, and this workflow file. A package published from a laptop has none, and
+# `npx @n8n/scan-community-package` will reject it.
+#
+# ─── ONE-TIME SETUP ───────────────────────────────────────────────────────────
+#
+# Option A — OIDC trusted publishing (preferred, no long-lived secret):
+#   npmjs.com -> the package -> Settings -> Publish access -> Trusted Publishers
+#   -> Add a publisher -> GitHub Actions:
+#     Repository owner: gamma-app
+#     Repository name:  n8n-nodes-gamma
+#     Workflow name:    publish.yml      (the filename, not the `name:` below)
+#     Environment:      (leave blank)
+#   Leave the NPM_TOKEN secret unset; npm authenticates via GitHub's OIDC token.
+#
+# Option B — npm granular access token (fallback):
+#   Create a Granular Access Token scoped to this package with read+write publish
+#   rights, then store it as the NPM_TOKEN Actions secret.
+#
+# Either way, provenance is signed by GitHub's OIDC infrastructure.
+#
+# ─── RELEASING ────────────────────────────────────────────────────────────────
+#
+#   npm version patch|minor|major     # bumps package.json, commits, tags
+#   git push origin main --follow-tags
+#
+# Pushing the tag is what triggers this workflow. The tag must match the version
+# in package.json (enforced below) so a mistyped tag fails before publishing.
+
+name: Publish
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - '*.*.*'
 
 jobs:
   publish:
+    name: Publish to npm
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+    permissions:
+      # Required to mint the OIDC token that signs the provenance attestation.
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
+          # Kept in lockstep with local development; n8n requires Node >=22.22.
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Check the tag matches package.json
+        run: |
+          pkg_version="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$pkg_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $pkg_version"
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
 
-      - name: Run linter
+      - name: Lint
         run: npm run lint
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Publish to npm with provenance
+        # `--access public` is required for a scoped package.
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          fi
+          npm publish --provenance --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
