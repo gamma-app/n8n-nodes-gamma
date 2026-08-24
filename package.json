@@ -1,6 +1,6 @@
 {
   "name": "@gammatech/n8n-nodes-gamma",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "n8n community node for Gamma - Create AI-powered presentations, documents, and websites",
   "keywords": [
     "n8n-community-node-package",
@@ -20,13 +20,19 @@
     "type": "git",
     "url": "git+https://github.com/gamma-app/n8n-nodes-gamma.git"
   },
-  "main": "index.js",
+  "engines": {
+    "node": ">=22.22"
+  },
   "scripts": {
     "build": "tsc && gulp build:icons",
+    "test": "npm run build && node test/presend.js && node test/visibility.js && node test/examples.js",
+    "sync:enums": "node scripts/sync-api-enums.mjs",
+    "sync:enums:check": "node scripts/sync-api-enums.mjs --check",
     "dev": "tsc --watch",
+    "dev:n8n": "n8n-node dev",
     "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials --ext .ts,.js",
-    "lintfix": "eslint nodes credentials --ext .ts,.js --fix",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
     "prepublishOnly": "npm run build && npm run lint"
   },
   "files": [
@@ -44,15 +50,10 @@
     ]
   },
   "devDependencies": {
-    "@devlikeapro/n8n-openapi-node": "^0.1.4",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.15.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-n8n-nodes-base": "^1.16.1",
-    "gulp": "^4.0.2",
-    "js-yaml": "^4.1.1",
-    "prettier": "^3.3.2",
-    "typescript": "^5.5.3"
+    "@n8n/node-cli": "^0.44.5",
+    "gulp": "^5.0.1",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "n8n-workflow": "*"
