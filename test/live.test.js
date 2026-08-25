@@ -53,11 +53,30 @@ describe('live Gamma API', { skip }, () => {
 	// key the answer is unambiguous.
 	it('reports whether the undocumented /v1.0/me endpoint exists', async () => {
 		const res = await call('/v1.0/me');
-		const verdict = res.status === 200
-			? 'EXISTS (undocumented). The User resource works, but is built on an unpublished endpoint.'
-			: `DOES NOT EXIST (${res.status}). Remove the User resource -- it can only ever fail.`;
-		console.log(`\n    GET /v1.0/me -> ${res.status}: ${verdict}\n`);
-		assert.ok([200, 404, 403, 405].includes(res.status), `unexpected status ${res.status}`);
+		let body = null;
+		try { body = await res.json(); } catch { /* not JSON */ }
+
+		const lines = ['', '  ┌─ /v1.0/me verdict ' + '─'.repeat(40), `  │ GET /v1.0/me -> ${res.status}`];
+		if (res.status === 200) {
+			lines.push('  │ EXISTS, but is undocumented.',
+				`  │ Response keys: ${body && typeof body === 'object' ? Object.keys(body).join(', ') : typeof body}`,
+				'  │',
+				'  │ ACTION: it works, but nothing published commits Gamma to keeping it.',
+				'  │ Either get it documented, or drop the User resource rather than',
+				'  │ build a public node on an endpoint that can vanish without notice.');
+		} else {
+			lines.push(`  │ DOES NOT EXIST (${res.status}).`,
+				'  │',
+				'  │ ACTION: remove the User resource from Gamma.node.ts -- the',
+				'  │ getMe operation can only ever fail. Drop the `user` option from',
+				'  │ the Resource parameter and its operation + displayOptions block,',
+				'  │ then update the DOCUMENTED set in test/routing.test.js so it no',
+				'  │ longer expects an undocumented endpoint.');
+		}
+		lines.push('  └' + '─'.repeat(58), '');
+		console.log(lines.join('\n'));
+
+		assert.ok([200, 401, 403, 404, 405].includes(res.status), `unexpected status ${res.status}`);
 	});
 
 	describe('generation', { skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (spends credits)' }, () => {
