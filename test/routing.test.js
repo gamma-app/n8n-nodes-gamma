@@ -91,11 +91,19 @@ describe('operations', () => {
 			.map((op) => `${op.routing.request.method} ${normalise(op.routing.request.url)}`)
 			.filter((sig) => !DOCUMENTED.has(sig));
 
-		// GET /v1.0/me appears nowhere in Gamma's published docs. It is a known
-		// open question (see docs/n8n-readiness-audit.md): either the endpoint is
-		// undocumented-but-real, or the User resource should be removed. Until one
-		// call with a real key settles it, this test pins the exception so no NEW
-		// undocumented endpoint slips in unnoticed.
+		// GET /v1.0/me appears nowhere in Gamma's published docs, but a live call
+		// with a real key on 2026-08-25 confirmed it returns 200 with
+		// { email, displayName, profileImageUrl, workspaceName, maxGenerateCards,
+		// availableImageModels }. So it is real, useful, and unpublished.
+		//
+		// It stays, because the failure mode is contained: if Gamma retires it,
+		// one read-only operation breaks rather than the node. For that same
+		// reason nothing else should depend on it -- deriving the image-model list
+		// or the numCards cap from /me would put the Create operation's UI at the
+		// mercy of an endpoint nobody has committed to.
+		//
+		// This assertion pins the exception so no NEW undocumented endpoint slips
+		// in unnoticed. Run `npm run test:live` to re-confirm /me still answers.
 		assert.deepStrictEqual(undocumented, ['GET /v1.0/me'],
 			'unexpected undocumented endpoint(s): ' + undocumented.join(', '));
 	});

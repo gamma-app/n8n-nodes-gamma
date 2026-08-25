@@ -63,7 +63,7 @@ export class Gamma implements INodeType {
 					{
 						name: 'User',
 						value: 'user',
-						description: 'Get your account information',
+						description: 'Read your account and workspace limits',
 					},
 				],
 				default: 'generation',
@@ -759,7 +759,7 @@ export class Gamma implements INodeType {
 							maxValue: 75,
 						},
 						default: 10,
-						description: 'Target number of cards to generate. Applies only when Card Split is Auto. Plan limits apply: up to 60 cards on Pro, Teams and Business, up to 75 on Ultra.',
+						description: 'Target number of cards to generate. Applies only when Card Split is Auto. Your plan caps this (60 on Pro, Teams and Business; 75 on Ultra) -- the User: Get User Information operation returns your exact limit as maxGenerateCards.',
 						displayOptions: {
 							hide: {
 								'/additionalOptions.cardSplit': ['inputTextBreaks'],
@@ -1185,7 +1185,7 @@ export class Gamma implements INodeType {
 						name: 'Get Me',
 						value: 'getMe',
 						action: 'Get user information',
-						description: 'Get authenticated user and workspace information',
+						description: 'Retrieve the account and workspace behind the API key, including your plan\'s maxGenerateCards limit and availableImageModels',
 						routing: {
 							request: {
 								method: 'GET',

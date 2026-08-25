@@ -5,6 +5,20 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The `/v1.0/me` question is settled: a live call confirms it returns 200 with
+  `{ email, displayName, profileImageUrl, workspaceName, maxGenerateCards,
+  availableImageModels }`. The `User` resource stays — its failure mode is
+  contained — but nothing else depends on it while it remains undocumented.
+  Its description now says what it actually returns, and `Number of Cards`
+  points at `maxGenerateCards` for the reader's exact plan limit.
+- The live `/me` check now prints an explicit verdict and the follow-up for each
+  outcome, and tolerates a 401 (Gamma runs auth before routing, so a bad key can
+  look like a missing route).
+
 ## [0.2.0] - 2026-08-24
 
 Prepares the package for a provenance-signed publish, fixes several requests the

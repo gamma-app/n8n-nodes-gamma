@@ -23,7 +23,7 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | A1 image source enum | done |
 | A2 folder single-value + clear error | done |
 | A3 credential test → `GET /v1.0/themes` | done |
-| A4 `User` resource still targets `/me` | **open** — needs one curl with a real key |
+| A4 `User` resource targets undocumented `/me` | resolved — confirmed live, kept with a caveat |
 | A5 dimensions per format | done |
 | A6 warnings | withdrawn — was never broken |
 | A7 `exportAs` + `png` | done |
@@ -78,7 +78,7 @@ that can't lie.
 | A1 | `imageOptions.source` offers `unsplash`, which is **not** in the API enum | Request rejected / silently wrong | 1 |
 | A2 | `folderIds` invites a comma-separated list; API accepts **at most 1** | Request rejected | 1 |
 | A3 | Credential test hits undocumented `GET /v1.0/me` | "Test connection" may fail on a *valid* key | 1 |
-| A4 | `User → Get user information` targets the same undocumented endpoint | Operation may be entirely non-functional | 1 |
+| A4 | `User → Get user information` targets the same undocumented endpoint | Works, but unpublished — see §3 | 1 |
 | A5 | Card dimensions not constrained by `format` | Silently ignored + a warning nobody sees | 1 |
 | ~~A6~~ | ~~Response `warnings` discarded~~ — **false alarm**, see §1.1 | none | — |
 | A7 | `exportAs` missing `png` | Capability silently absent | 1 |
@@ -195,7 +195,29 @@ verifiable.
   Rename to **Folder** (singular), take one value, and drop the
   `e.g. fold_abc123,fold_xyz789` placeholder that teaches the invalid shape.
   Becomes a Resource Locator in Phase 4.
-- **A3 / A4 `/me`.** No `/me` endpoint appears anywhere in the production docs,
+- **A3 / A4 `/me` — resolved 2026-08-25.** A live call with a real key
+  (`npm run test:live`) returns **200** with a genuinely useful body:
+  `{ email, displayName, profileImageUrl, workspaceName, maxGenerateCards,
+  availableImageModels }`. The endpoint is real, useful, and unpublished.
+
+  The `User` resource **stays**. Its failure mode is contained: if Gamma retires
+  `/me`, one read-only operation breaks rather than the node. For that same
+  reason nothing else should depend on it — deriving the image-model list or the
+  `numCards` cap from `/me` would put the Create operation's UI at the mercy of
+  an endpoint nobody has committed to keeping.
+
+  The credential test moving to `GET /v1.0/themes` was correct regardless: it is
+  documented, cheap, and the docs name it as the way to validate a key.
+
+  **Worth raising internally rather than fixing in code:** `maxGenerateCards` and
+  `availableImageModels` are exactly the plan-dependent facts the node currently
+  hardcodes — the `numCards` ceiling and which of the 40 image models a given
+  workspace can actually use. If `/me` were documented, both could become
+  dynamic, and that would be the single biggest accuracy win available.
+
+  The original reasoning, written before the endpoint was confirmed:
+
+- **A3 / A4 `/me` (original analysis).** No `/me` endpoint appears anywhere in the production docs,
   and asking the docs directly confirms it: validation should be "call a metadata
   endpoint like themes or folders". Auth runs before routing on this API, so an
   unauthenticated probe returns 401 for every path and **cannot** prove whether
@@ -355,7 +377,12 @@ These change the shape of the work and aren't mine to make:
    items rather than hand-authoring them.
 4. **OAuth priority.** Needed for verification, but it's the largest single item
    in Phase 4. Confirm whether verification is still the goal before investing.
-5. **`/me`.** One curl with a real key settles A3/A4.
+5. ~~**`/me`.** One curl with a real key settles A3/A4.~~ **Resolved
+   2026-08-25:** returns 200 with `maxGenerateCards` and
+   `availableImageModels`. The `User` resource stays; nothing else should depend
+   on it while it is undocumented. Getting it documented would let the node
+   derive plan limits and the usable model list dynamically — worth raising
+   internally.
 
 ---
 
