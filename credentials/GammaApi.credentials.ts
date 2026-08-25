@@ -1,5 +1,6 @@
 import {
 	IAuthenticateGeneric,
+	Icon,
 	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
@@ -9,6 +10,7 @@ export class GammaApi implements ICredentialType {
 	name = 'gammaApi';
 	displayName = 'Gamma API';
 	documentationUrl = 'https://developers.gamma.app';
+	icon: Icon = 'file:icons/gamma.svg';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
@@ -20,7 +22,7 @@ export class GammaApi implements ICredentialType {
 			default: '',
 			required: true,
 			description: 'Your Gamma API key (starts with sk-gamma-)',
-			placeholder: 'sk-gamma-xxxxx',
+			placeholder: 'e.g. sk-gamma-xxxxxxxx',
 		},
 	];
 	
@@ -34,11 +36,12 @@ export class GammaApi implements ICredentialType {
 		},
 	};
 	
-	// Test credentials by calling the /v1.0/me endpoint
+	// Validated against /themes: it is documented, cheap, and returns 401 for a
+	// bad key. Gamma publishes no /me endpoint, so don't test against one.
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: 'https://public-api.gamma.app',
-			url: '/v1.0/me',
+			url: '/v1.0/themes',
 			method: 'GET',
 		},
 	};

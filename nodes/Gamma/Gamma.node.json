@@ -1,10 +1,9 @@
 {
-	"node": "n8n-nodes-base.Gamma",
+	"node": "@gammatech/n8n-nodes-gamma",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": [
-		"AI",
-		"Content Creation",
+		"Marketing & Content",
 		"Productivity"
 	],
 	"resources": {
@@ -20,4 +19,3 @@
 		]
 	}
 }
-

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily, so a new Gamma image model or language shows up as a red build
+    # within a day rather than as a support ticket months later.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+
+  api-drift:
+    name: API enum drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      # Fetches Gamma's published docs and fails if nodes/Gamma/apiEnums.ts is
+      # stale. Fix with `npm run sync:enums` and commit the result.
+      - run: npm run sync:enums:check
