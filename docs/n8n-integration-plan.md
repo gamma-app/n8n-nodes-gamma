@@ -38,7 +38,13 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | Phase 6 enum sync + `--check` + CI | done |
 | Phase 6 delete `COMPLETE_FIELDS_LIST.md` | **open** — deletion is the user's call |
 | Gulp 5 binary-encoding regression | found during verification, fixed |
-| Phase 3 coverage, Phase 4 verification items | not started |
+| A13 list `limit` capped at 200 when the API allows 50 | fixed |
+| D1 OAuth2 credential | done — **needs one live flow to confirm** |
+| D2 Resource Locators for Theme and Folder | done |
+| D3 `Simplify` parameter | **not applicable yet** — see §5 |
+| Action naming (drop articles) | done |
+| Error mapping | not started |
+| Phase 3 coverage | not started |
 
 Two things worth knowing about the implementation:
 
@@ -309,18 +315,53 @@ Resource layout, once expanded: `Generation`, `Gamma`, `Image`, `Export`,
 These are not polish — the first three are checked by human review and currently
 fail.
 
-- **D1 OAuth credential.** The UX guidelines say "Always include the OAuth
-  credential if available." Gamma documents an OAuth 2.0 authorization-code flow
-  (`https://auth.gamma.app/oauth/token`, dynamic client registration at
-  `/oauth/register`). We ship API key only. Add `GammaOAuth2Api` alongside, and
-  let the node accept either.
-- **D2 Resource Locators.** `themeId` and the folder are free-text IDs today; the
-  guidelines want a Resource Locator defaulting to **From list**. `GET /themes`
-  and `GET /folders` exist precisely for this, so add `loadOptions` /
-  `listSearch` methods. This is the single most visible UX gap — users currently
-  have to go find an ID in the app and paste it.
-- **D3 `Simplify`.** Analytics and comments responses exceed 10 fields, so they
-  need the standard `Simplify` boolean with the exact prescribed description.
+- **D1 OAuth credential — implemented, pending one live check.**
+  `GammaOAuth2Api` extends n8n's `oAuth2Api` and points at
+  `auth.gamma.app/oauth/{authorize,token}`, with an `Authentication` parameter on
+  the node selecting between API key and OAuth2.
+
+  Two decisions worth recording. First, it registers as a **confidential client**
+  (`token_endpoint_auth_method: client_secret_post`), which Gamma supports and
+  n8n handles natively — this sidesteps PKCE, which n8n's generic OAuth2
+  credential does not implement (the PKCE references in `n8n-workflow` belong to
+  n8n's own internal trigger auth, not to `oAuth2Api`). Second, it hardcodes
+  `authQueryParameters: 'resource=https://public-api.gamma.app'`; Gamma's docs
+  call omitting that RFC 8707 resource indicator "the most common integration
+  mistake", because the flow succeeds and then every API call fails on a
+  mis-audienced token.
+
+  **Still unverified:** nobody has completed the browser flow. It needs a client
+  registered via `POST https://auth.gamma.app/oauth/register` with n8n's OAuth
+  redirect URL, then one connection in the n8n UI. If Gamma turns out to require
+  PKCE even for confidential clients, the generic credential will not suffice.
+- **D2 Resource Locators — done.** Theme (in Additional Options), Folder, and
+  the template Theme override are now `resourceLocator` parameters defaulting to
+  **From List**, backed by `listSearch` methods over `GET /themes` and
+  `GET /folders`. Each keeps a **By ID** mode for expressions and pasted IDs.
+
+  The lookup honours the node's `Authentication` setting, so the pickers work
+  under either credential. It requests `limit: 50` (the API maximum) and maps
+  `nextCursor` to n8n's `paginationToken`, converting the API's terminal `null`
+  to `undefined` — otherwise the picker pages forever.
+- **D3 `Simplify` — not applicable to the current operations.** The guideline
+  applies to endpoints returning more than 10 fields. Checked against the actual
+  response schemas: generation status returns 8 (`generationId`, `status`,
+  `gammaId`, `gammaUrl`, `exportUrl`, `credits`, `title`, `error`), `/me` returns
+  6, and folder items return 2. Adding `Simplify` now would be box-ticking on
+  responses that are already small. It becomes genuinely necessary with the
+  Phase 3 analytics endpoints, which return 30-day daily breakdowns and per-card
+  arrays — add it with them.
+
+- **Deferred design question: list output shape.** `GET /themes` and
+  `GET /folders` return `{ data, hasMore, nextCursor }`, and the node passes that
+  wrapper straight through, so a list operation emits one item containing an
+  array rather than one item per result. n8n convention is the latter, via
+  `postReceive: [{ type: 'rootProperty', properties: { property: 'data' } }]` —
+  but that discards `nextCursor`, breaking manual pagination for anyone using the
+  `after` parameter. The clean answer is auto-pagination via
+  `routing.operations.pagination` plus `rootProperty`, which makes `after`
+  redundant. That is a real behaviour change with a migration cost, so it is
+  deliberately left for Phase 3 rather than slipped in here.
 - **CRUD naming.** Rename actions to drop articles: "Create a generation" →
   "Create generation". Add `Get Many` naming where lists are returned.
 - **Errors.** Map documented statuses onto actionable messages: 402 → "Workspace

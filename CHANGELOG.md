@@ -7,7 +7,30 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **OAuth 2.0 credential** (`Gamma OAuth2 API`) alongside the API key, with an
+  `Authentication` selector on the node. Use it when a workflow should act on
+  behalf of a Gamma user in the workspace they choose, rather than as the API
+  key's owner. Registers as a confidential client, and sends the
+  `resource=https://public-api.gamma.app` indicator Gamma's docs identify as the
+  most commonly missed requirement. **Not yet exercised end to end** — it needs a
+  registered client and one browser flow.
+- **Resource Locators for Theme and Folder.** Both, plus the template theme
+  override, are now searchable pickers defaulting to "From List" and backed by
+  `GET /themes` / `GET /folders`, with a "By ID" mode retained for expressions.
+  Previously these were free-text fields, so users had to find an ID in the
+  Gamma app and paste it.
+
+### Fixed
+
+- The `limit` parameter on List Themes and List Folders allowed up to 200; the
+  API caps both at 50 and rejects more.
+
 ### Changed
+
+- `Create a generation` is now `Create generation` — n8n's UX guidelines require
+  action names to omit articles.
 
 - The `/v1.0/me` question is settled: a live call confirms it returns 200 with
   `{ email, displayName, profileImageUrl, workspaceName, maxGenerateCards,
