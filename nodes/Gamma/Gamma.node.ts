@@ -132,7 +132,8 @@ export class Gamma implements INodeType {
 					{
 						name: 'OAuth2',
 						value: 'oAuth2',
-						description: 'Act on behalf of a Gamma user in the workspace they choose',
+						description:
+							'Act on behalf of a Gamma user in the workspace they choose. Requires Gamma to allow-list your n8n redirect URL first.',
 					},
 				],
 				default: 'apiKey',

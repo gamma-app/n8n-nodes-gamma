@@ -8,8 +8,19 @@ import { Icon, ICredentialType, INodeProperties } from 'n8n-workflow';
  * spending their credits. For acting as yourself, the API key credential is
  * simpler.
  *
- * Register a client once with Gamma's dynamic client registration (no approval
- * needed), choosing a confidential client so n8n can authenticate with a secret:
+ * PREREQUISITE: Gamma's dynamic client registration only accepts redirect URIs
+ * on its allow-list (`oauth_dcr_allowed_redirect_urls`). n8n's redirect URL is
+ * per-instance -- `<your-n8n-url>/rest/oauth2-credential/callback` -- so an
+ * arbitrary instance is rejected with:
+ *
+ *   {"message":"redirect_uri not allowed: http://localhost:5678/rest/...",
+ *    "error":"Bad Request","statusCode":400}
+ *
+ * Until Gamma allow-lists the URL (or a pattern covering n8n instances), this
+ * credential cannot be created. The API key credential has no such dependency.
+ *
+ * Once allow-listed, register a confidential client so n8n can authenticate
+ * with a secret:
  *
  *   curl -X POST https://auth.gamma.app/oauth/register \
  *     -H "Content-Type: application/json" \
@@ -31,6 +42,15 @@ export class GammaOAuth2Api implements ICredentialType {
 	icon: Icon = 'file:icons/gamma.svg';
 
 	properties: INodeProperties[] = [
+		{
+			// Without this, selecting OAuth2 dead-ends at a 400 from Gamma's client
+			// registration endpoint, with nothing in n8n explaining why.
+			displayName:
+				'Gamma must allow-list your redirect URL before this credential can be created. Copy the OAuth Redirect URL below and ask Gamma to add it, then register a client at https://auth.gamma.app/oauth/register to get a Client ID and Secret. Registration fails with "redirect_uri not allowed" until that is done. If you only need to act as yourself, the Gamma API credential needs no setup.',
+			name: 'setupNotice',
+			type: 'notice',
+			default: '',
+		},
 		{
 			displayName: 'Grant Type',
 			name: 'grantType',

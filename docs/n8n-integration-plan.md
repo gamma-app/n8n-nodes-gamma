@@ -39,7 +39,7 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | Phase 6 delete `COMPLETE_FIELDS_LIST.md` | **open** — deletion is the user's call |
 | Gulp 5 binary-encoding regression | found during verification, fixed |
 | A13 list `limit` capped at 200 when the API allows 50 | fixed |
-| D1 OAuth2 credential | done — **needs one live flow to confirm** |
+| D1 OAuth2 credential | **blocked on Gamma** — redirect URL not allow-listed |
 | D2 Resource Locators for Theme and Folder | done |
 | D3 `Simplify` parameter | **not applicable yet** — see §5 |
 | Action naming (drop articles) | done |
@@ -330,10 +330,40 @@ fail.
   mistake", because the flow succeeds and then every API call fails on a
   mis-audienced token.
 
-  **Still unverified:** nobody has completed the browser flow. It needs a client
-  registered via `POST https://auth.gamma.app/oauth/register` with n8n's OAuth
-  redirect URL, then one connection in the n8n UI. If Gamma turns out to require
-  PKCE even for confidential clients, the generic credential will not suffice.
+  **Blocked on a Gamma-side change, confirmed 2026-08-25.** Registering a client
+  with n8n's redirect URL is rejected:
+
+  ```
+  POST https://auth.gamma.app/oauth/register
+  {"message":"redirect_uri not allowed: http://localhost:5678/rest/oauth2-credential/callback",
+   "error":"Bad Request","statusCode":400}
+  ```
+
+  Gamma's dynamic client registration only accepts redirect URIs on its
+  allow-list (`oauth_dcr_allowed_redirect_urls`) — the same list the MCP partner
+  onboarding process manages. n8n's redirect URL is **per-instance**
+  (`<instance-url>/rest/oauth2-credential/callback`), which is the hard part:
+  self-hosted users each have their own, so an allow-list of exact URLs cannot
+  cover n8n generically.
+
+  Three possible resolutions, in rough order of practicality:
+
+  1. **Allow-list a pattern** covering n8n Cloud tenants (something like
+     `https://*.app.n8n.cloud/rest/oauth2-credential/callback`). Unblocks Cloud
+     users, who are the majority, and leaves self-hosted out.
+  2. **Treat n8n as a partner** and allow-list specific customer instances on
+     request. Works, but scales poorly.
+  3. **Relax DCR** for redirect URIs that match n8n's known path suffix.
+
+  Until one of those happens the credential cannot be created by anyone, so the
+  node surfaces the prerequisite at the point of use: a `notice` at the top of
+  the credential, and a note on the OAuth2 option in the Authentication
+  dropdown. The code is complete and correct — it is waiting on infrastructure,
+  not on more work here.
+
+  A secondary unknown remains behind this one: even once registration succeeds,
+  if Gamma requires PKCE for confidential clients, n8n's generic OAuth2
+  credential will not suffice. That cannot be tested until step 1 is unblocked.
 - **D2 Resource Locators — done.** Theme (in Additional Options), Folder, and
   the template Theme override are now `resourceLocator` parameters defaulting to
   **From List**, backed by `listSearch` methods over `GET /themes` and
