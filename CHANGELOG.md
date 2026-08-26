@@ -28,6 +28,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
+- **README rewritten for a public, enterprise audience.** It previously carried
+  internal material — a "Why This Matters for Gamma" section framed around a
+  DevRel role, internal success metrics, a stale task-list roadmap, and
+  "Internal: Message Max directly" as the contribution route. It now leads with
+  what the node does, how to install and authenticate, a full operations table,
+  the two example workflows, and an honest roadmap. Support routes to GitHub
+  issues.
+- `package.json` `author` is now the organisation rather than an individual,
+  with `bugs.url` pointing at GitHub issues.
 - Delete emits `deleted: true` alongside `gammaId`, as n8n's UX guidelines ask,
   rather than passing the raw `{ status, gammaId, message }` through.
 - Resource options are alphabetised, which n8n's linter requires once there are
