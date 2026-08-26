@@ -5,6 +5,32 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`nodes/Gamma/` split into modules**, following the structure n8n uses for its
+  own large nodes (Airtable v2). `Gamma.node.ts` goes from 1,556 lines to 39: a
+  shell that imports assembled properties and the `listSearch` methods. Each
+  resource now lives under `actions/<resource>/`, with one file per operation
+  that has parameters of its own.
+
+  This is a pure reorganisation. The built node description is **byte-identical**
+  before and after — verified by serialising it (including function bodies) and
+  diffing — so nothing n8n sees has changed.
+
+  `additionalOptions` deliberately stays in one file. n8n's linter enforces
+  alphabetical ordering of a collection's members, and assembling them from
+  several modules would move that ordering out of reach of the static check.
+
+### Added
+
+- `test/structure.test.js` guards the risk the split introduces: that a
+  mis-ordered import scatters one resource's parameters through another's. It
+  asserts each resource occupies one contiguous run, every resource in the
+  selector has exactly one operation parameter, and every picker references a
+  `listSearch` method that exists.
+
 ## [0.4.0] - 2026-08-25
 
 The node can now work with Gammas that already exist, not only create new ones.
