@@ -5,7 +5,11 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-08-25
+
+The node can now work with Gammas that already exist, not only create new ones.
+Export is the headline: a Gamma could previously only be exported at generation
+time, so re-exporting an existing deck was impossible.
 
 ### Added
 
