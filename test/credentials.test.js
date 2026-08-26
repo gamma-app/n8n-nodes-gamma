@@ -3,65 +3,10 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
 const { GammaApi } = require('../dist/credentials/GammaApi.credentials.js');
-const { GammaOAuth2Api } = require('../dist/credentials/GammaOAuth2Api.credentials.js');
 const pkg = require('../package.json');
 
 const description = new Gamma().description;
 const prop = (name) => description.properties.find((p) => p.name === name);
-
-describe('authentication selector', () => {
-	it('offers API key and OAuth2, defaulting to API key', () => {
-		const auth = prop('authentication');
-		assert.ok(auth, 'no authentication parameter');
-		assert.deepStrictEqual(auth.options.map((o) => o.value), ['apiKey', 'oAuth2']);
-		assert.strictEqual(auth.default, 'apiKey');
-	});
-
-	it('requires exactly one credential per mode', () => {
-		for (const [mode, name] of [['apiKey', 'gammaApi'], ['oAuth2', 'gammaOAuth2Api']]) {
-			const match = description.credentials.filter(
-				(c) => c.name === name && c.displayOptions?.show?.authentication?.includes(mode));
-			assert.strictEqual(match.length, 1, `no credential wired to ${mode}`);
-			assert.strictEqual(match[0].required, true);
-		}
-	});
-
-	it('registers both credentials in package.json', () => {
-		for (const c of ['GammaApi', 'GammaOAuth2Api']) {
-			assert.ok(pkg.n8n.credentials.some((p) => p.includes(c)), `${c} not registered`);
-		}
-	});
-});
-
-describe('OAuth2 credential', () => {
-	const cred = new GammaOAuth2Api();
-	const field = (name) => cred.properties.find((p) => p.name === name);
-
-	it('extends n8n\'s generic OAuth2 credential', () => {
-		assert.deepStrictEqual(cred.extends, ['oAuth2Api']);
-		assert.strictEqual(cred.name, 'gammaOAuth2Api');
-	});
-
-	it('points at Gamma\'s authorization server', () => {
-		assert.strictEqual(field('authUrl').default, 'https://auth.gamma.app/oauth/authorize');
-		assert.strictEqual(field('accessTokenUrl').default, 'https://auth.gamma.app/oauth/token');
-		assert.strictEqual(field('grantType').default, 'authorizationCode');
-	});
-
-	it('sends the RFC 8707 resource indicator', () => {
-		// Gamma's docs call omitting this "the most common integration mistake":
-		// without it the token audience is wrong and every API call fails even
-		// though the OAuth flow itself appears to succeed.
-		assert.strictEqual(
-			field('authQueryParameters').default,
-			'resource=https://public-api.gamma.app');
-	});
-
-	it('offers only the scopes Gamma documents', () => {
-		assert.deepStrictEqual(field('scope').options.map((o) => o.value), ['generate', 'gamma:read']);
-		assert.strictEqual(field('scope').default, 'generate');
-	});
-});
 
 describe('resource locators', () => {
 	const additional = prop('additionalOptions');
@@ -129,11 +74,11 @@ describe('listSearch mapping', () => {
 	const methods = new Gamma().methods.listSearch;
 
 	/** A minimal ILoadOptionsFunctions that records the request and replays a body. */
-	function context(body, authentication = 'apiKey') {
+	function context(body) {
 		const calls = [];
 		return {
 			calls,
-			getNodeParameter: (name, fallback) => (name === 'authentication' ? authentication : fallback),
+			getNodeParameter: (_name, fallback) => fallback,
 			helpers: {
 				httpRequestWithAuthentication: async function (credentialType, options) {
 					calls.push({ credentialType, options });
@@ -201,12 +146,10 @@ describe('listSearch mapping', () => {
 		assert.deepStrictEqual(res.results, [{ name: 'Marketing', value: 'f_1', description: undefined }]);
 	});
 
-	it('authenticates with whichever credential the node is set to', async () => {
-		for (const [mode, expected] of [['apiKey', 'gammaApi'], ['oAuth2', 'gammaOAuth2Api']]) {
-			const ctx = context(THEMES, mode);
-			await methods.searchThemes.call(ctx);
-			assert.strictEqual(ctx.calls[0].credentialType, expected);
-		}
+	it('authenticates with the Gamma API credential', async () => {
+		const ctx = context(THEMES);
+		await methods.searchThemes.call(ctx);
+		assert.strictEqual(ctx.calls[0].credentialType, 'gammaApi');
 	});
 
 	it('survives a response with no data array', async () => {

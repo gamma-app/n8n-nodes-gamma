@@ -44,8 +44,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/GammaApi.credentials.js",
-      "dist/credentials/GammaOAuth2Api.credentials.js"
+      "dist/credentials/GammaApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/Gamma/Gamma.node.js"

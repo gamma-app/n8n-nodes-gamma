@@ -24,15 +24,11 @@ async function searchWorkspaceResource(
 	paginationToken?: string,
 	describe?: (item: IDataObject) => string | undefined,
 ): Promise<INodeListSearchResult> {
-	// The node accepts either credential, so ask which one is in play.
-	const authentication = this.getNodeParameter('authentication', 'apiKey') as string;
-	const credentialType = authentication === 'oAuth2' ? 'gammaOAuth2Api' : 'gammaApi';
-
 	const qs: IDataObject = { limit: 50 };
 	if (filter) qs.query = filter;
 	if (paginationToken) qs.after = paginationToken;
 
-	const response = (await this.helpers.httpRequestWithAuthentication.call(this, credentialType, {
+	const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'gammaApi', {
 		method: 'GET',
 		baseURL: BASE_URL,
 		url,
@@ -95,20 +91,6 @@ export class Gamma implements INodeType {
 			{
 				name: 'gammaApi',
 				required: true,
-				displayOptions: {
-					show: {
-						authentication: ['apiKey'],
-					},
-				},
-			},
-			{
-				name: 'gammaOAuth2Api',
-				required: true,
-				displayOptions: {
-					show: {
-						authentication: ['oAuth2'],
-					},
-				},
 			},
 		],
 		requestDefaults: {
@@ -119,27 +101,6 @@ export class Gamma implements INodeType {
 			},
 		},
 		properties: [
-			{
-				displayName: 'Authentication',
-				name: 'authentication',
-				type: 'options',
-				options: [
-					{
-						name: 'API Key',
-						value: 'apiKey',
-						description: 'Act as yourself, using a workspace API key',
-					},
-					{
-						name: 'OAuth2',
-						value: 'oAuth2',
-						description:
-							'Act on behalf of a Gamma user in the workspace they choose. Requires Gamma to allow-list your n8n redirect URL first.',
-					},
-				],
-				default: 'apiKey',
-				description: 'How to authenticate with Gamma',
-			},
-
 			// ============================================
 			// RESOURCE SELECTOR
 			// ============================================

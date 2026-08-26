@@ -9,18 +9,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- **OAuth 2.0 credential** (`Gamma OAuth2 API`) alongside the API key, with an
-  `Authentication` selector on the node. Use it when a workflow should act on
-  behalf of a Gamma user in the workspace they choose, rather than as the API
-  key's owner. Registers as a confidential client, and sends the
-  `resource=https://public-api.gamma.app` indicator Gamma's docs identify as the
-  most commonly missed requirement.
-
-  **Currently unusable pending a Gamma-side change.** Gamma's dynamic client
-  registration only accepts redirect URIs on its allow-list, and n8n's redirect
-  URL is per-instance, so registration fails with `redirect_uri not allowed`.
-  The credential surfaces this prerequisite in its own UI rather than letting
-  users discover it as a 400. See `docs/n8n-integration-plan.md` §5.
 - **Resource Locators for Theme and Folder.** Both, plus the template theme
   override, are now searchable pickers defaulting to "From List" and backed by
   `GET /themes` / `GET /folders`, with a "By ID" mode retained for expressions.
@@ -31,6 +19,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - The `limit` parameter on List Themes and List Folders allowed up to 200; the
   API caps both at 50 and rejects more.
+
+### Not included
+
+- **OAuth 2.0** was implemented and then removed before release. Gamma's dynamic
+  client registration only accepts redirect URIs on an allow-list, and n8n's
+  redirect URL is per-instance, so registration fails with
+  `redirect_uri not allowed` for every n8n user. An authentication option that
+  cannot be completed is worse than none. The implementation is preserved in
+  this branch's history and the blocker is documented in
+  `docs/n8n-integration-plan.md` §5.
 
 ### Changed
 

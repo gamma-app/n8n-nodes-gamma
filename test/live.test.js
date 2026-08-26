@@ -88,7 +88,7 @@ describe('live Gamma API', { skip }, () => {
 
 		/** Minimal ILoadOptionsFunctions backed by the real API. */
 		const ctx = {
-			getNodeParameter: (name, fallback) => (name === 'authentication' ? 'apiKey' : fallback),
+			getNodeParameter: (_name, fallback) => fallback,
 			helpers: {
 				httpRequestWithAuthentication: async (_credentialType, options) => {
 					const url = new URL(options.baseURL + options.url);

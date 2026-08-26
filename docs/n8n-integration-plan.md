@@ -39,7 +39,7 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | Phase 6 delete `COMPLETE_FIELDS_LIST.md` | **open** — deletion is the user's call |
 | Gulp 5 binary-encoding regression | found during verification, fixed |
 | A13 list `limit` capped at 200 when the API allows 50 | fixed |
-| D1 OAuth2 credential | **blocked on Gamma** — redirect URL not allow-listed |
+| D1 OAuth2 credential | **removed** — blocked on Gamma's redirect allow-list |
 | D2 Resource Locators for Theme and Folder | done |
 | D3 `Simplify` parameter | **not applicable yet** — see §5 |
 | Action naming (drop articles) | done |
@@ -315,23 +315,12 @@ Resource layout, once expanded: `Generation`, `Gamma`, `Image`, `Export`,
 These are not polish — the first three are checked by human review and currently
 fail.
 
-- **D1 OAuth credential — implemented, pending one live check.**
-  `GammaOAuth2Api` extends n8n's `oAuth2Api` and points at
-  `auth.gamma.app/oauth/{authorize,token}`, with an `Authentication` parameter on
-  the node selecting between API key and OAuth2.
+- **D1 OAuth credential — built, then removed. Blocked on Gamma.**
 
-  Two decisions worth recording. First, it registers as a **confidential client**
-  (`token_endpoint_auth_method: client_secret_post`), which Gamma supports and
-  n8n handles natively — this sidesteps PKCE, which n8n's generic OAuth2
-  credential does not implement (the PKCE references in `n8n-workflow` belong to
-  n8n's own internal trigger auth, not to `oAuth2Api`). Second, it hardcodes
-  `authQueryParameters: 'resource=https://public-api.gamma.app'`; Gamma's docs
-  call omitting that RFC 8707 resource indicator "the most common integration
-  mistake", because the flow succeeds and then every API call fails on a
-  mis-audienced token.
-
-  **Blocked on a Gamma-side change, confirmed 2026-08-25.** Registering a client
-  with n8n's redirect URL is rejected:
+  The UX guidelines say to offer OAuth wherever the service supports it, and
+  Gamma documents a full OAuth 2.0 authorization-code flow. A `GammaOAuth2Api`
+  credential was implemented and then **taken back out**, because no n8n user
+  can currently create one:
 
   ```
   POST https://auth.gamma.app/oauth/register
@@ -342,28 +331,45 @@ fail.
   Gamma's dynamic client registration only accepts redirect URIs on its
   allow-list (`oauth_dcr_allowed_redirect_urls`) — the same list the MCP partner
   onboarding process manages. n8n's redirect URL is **per-instance**
-  (`<instance-url>/rest/oauth2-credential/callback`), which is the hard part:
-  self-hosted users each have their own, so an allow-list of exact URLs cannot
-  cover n8n generically.
+  (`<instance-url>/rest/oauth2-credential/callback`), so self-hosted users each
+  have their own and an allow-list of exact URLs cannot cover n8n generically.
 
-  Three possible resolutions, in rough order of practicality:
+  Shipping an authentication option that dead-ends at a 400 is worse than not
+  offering it, so the node is API-key-only again.
 
-  1. **Allow-list a pattern** covering n8n Cloud tenants (something like
-     `https://*.app.n8n.cloud/rest/oauth2-credential/callback`). Unblocks Cloud
-     users, who are the majority, and leaves self-hosted out.
-  2. **Treat n8n as a partner** and allow-list specific customer instances on
-     request. Works, but scales poorly.
-  3. **Relax DCR** for redirect URIs that match n8n's known path suffix.
+  **What unblocks it**, roughly by practicality:
 
-  Until one of those happens the credential cannot be created by anyone, so the
-  node surfaces the prerequisite at the point of use: a `notice` at the top of
-  the credential, and a note on the OAuth2 option in the Authentication
-  dropdown. The code is complete and correct — it is waiting on infrastructure,
-  not on more work here.
+  1. Allow-list a pattern covering n8n Cloud tenants (something like
+     `https://*.app.n8n.cloud/rest/oauth2-credential/callback`). Unblocks the
+     majority; leaves self-hosted out.
+  2. Treat n8n as a partner and allow-list specific customer instances on
+     request. Works, scales poorly.
+  3. Relax DCR for redirect URIs matching n8n's known path suffix.
 
-  A secondary unknown remains behind this one: even once registration succeeds,
-  if Gamma requires PKCE for confidential clients, n8n's generic OAuth2
-  credential will not suffice. That cannot be tested until step 1 is unblocked.
+  **Restoring the work.** The implementation is not lost — it is complete and
+  reviewed, just unusable. It lives in two commits on this branch's history:
+
+  ```
+  git show ce05736 -- credentials/GammaOAuth2Api.credentials.ts
+  git show 31ab751 -- credentials/GammaOAuth2Api.credentials.ts
+  ```
+
+  Two design decisions worth keeping when it comes back:
+
+  - It registers as a **confidential client** (`client_secret_post`), because
+    n8n's generic OAuth2 credential does not implement PKCE — the PKCE machinery
+    in `n8n-workflow` belongs to n8n's own internal trigger auth, not to
+    `oAuth2Api`. Gamma supports both client types, and confidential sidesteps it.
+  - It hardcodes `authQueryParameters: 'resource=https://public-api.gamma.app'`.
+    Gamma's docs call omitting that RFC 8707 resource indicator "the most common
+    integration mistake": the flow succeeds and then every API call fails on a
+    mis-audienced token.
+
+  **A second unknown sits behind the first:** even once registration works, if
+  Gamma requires PKCE for confidential clients too, the generic n8n credential
+  will not suffice and this needs redesigning. That is untestable until the
+  allow-list moves.
+
 - **D2 Resource Locators — done.** Theme (in Additional Options), Folder, and
   the template Theme override are now `resourceLocator` parameters defaulting to
   **From List**, backed by `listSearch` methods over `GET /themes` and
