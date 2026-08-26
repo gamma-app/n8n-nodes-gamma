@@ -111,6 +111,21 @@ export class Gamma implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Export',
+						value: 'export',
+						description: 'Check the status of an export started on a Gamma',
+					},
+					{
+						name: 'Folder',
+						value: 'folder',
+						description: 'Browse workspace folders (read-only - use to get folder IDs)',
+					},
+					{
+						name: 'Gamma',
+						value: 'gamma',
+						description: 'Read, export, archive or delete an existing Gamma',
+					},
+					{
 						name: 'Generation',
 						value: 'generation',
 						description: 'Create and manage AI-generated presentations, documents, and social posts',
@@ -119,11 +134,6 @@ export class Gamma implements INodeType {
 						name: 'Theme',
 						value: 'theme',
 						description: 'Browse available themes (read-only - use to get theme IDs)',
-					},
-					{
-						name: 'Folder',
-						value: 'folder',
-						description: 'Browse workspace folders (read-only - use to get folder IDs)',
 					},
 					{
 						name: 'User',
@@ -941,6 +951,29 @@ export class Gamma implements INodeType {
 						},
 					},
 					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						placeholder: 'e.g. Q3 Results Overview',
+						description:
+							'Title for the generated Gamma. Leave empty to have one generated from the content.',
+						routing: {
+							send: {
+								preSend: [
+									async function (this, requestOptions) {
+										const value = this.getNodeParameter('additionalOptions.title') as string;
+										if (value) {
+											requestOptions.body = requestOptions.body || {};
+											(requestOptions.body as IDataObject).title = value;
+										}
+										return requestOptions;
+									},
+								],
+							},
+						},
+					},
+					{
 						displayName: 'Tone',
 						name: 'tone',
 						type: 'string',
@@ -1317,6 +1350,205 @@ export class Gamma implements INodeType {
 					},
 				],
 				default: 'getMe',
+			},
+
+			// ============================================
+			// GAMMA OPERATIONS
+			// ============================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['gamma'],
+					},
+				},
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get gamma',
+						description: 'Retrieve metadata for a Gamma',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/v1.0/gammas/{{$parameter["gammaIdentifier"]}}',
+							},
+						},
+					},
+					{
+						name: 'Export',
+						value: 'export',
+						action: 'Export gamma',
+						description: 'Start an export of an existing Gamma to PDF, PPTX or PNG',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/v1.0/gammas/{{$parameter["gammaIdentifier"]}}/export',
+							},
+						},
+					},
+					{
+						name: 'Archive',
+						value: 'archive',
+						action: 'Archive gamma',
+						description: 'Archive a Gamma. Repeating this on an archived Gamma succeeds.',
+						routing: {
+							request: {
+								method: 'POST',
+								url: '=/v1.0/gammas/{{$parameter["gammaIdentifier"]}}/archive',
+							},
+						},
+					},
+					{
+						name: 'Delete',
+						value: 'delete',
+						action: 'Delete gamma',
+						description: 'Delete a Gamma permanently. Requires a workspace admin role.',
+						routing: {
+							request: {
+								method: 'DELETE',
+								url: '=/v1.0/gammas/{{$parameter["gammaIdentifier"]}}',
+							},
+							output: {
+								// n8n's UX guidelines ask delete operations to confirm with
+								// `deleted: true`; gammaId is kept so the item stays useful
+								// to whatever runs next.
+								postReceive: [
+									{
+										type: 'setKeyValue',
+										properties: {
+											deleted: '={{ true }}',
+											gammaId: '={{ $responseItem.gammaId }}',
+										},
+									},
+								],
+							},
+						},
+					},
+				],
+				default: 'get',
+			},
+			{
+				displayName: 'Gamma ID',
+				name: 'gammaIdentifier',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. g_l0mf2jvf1fpmi1v',
+				displayOptions: {
+					show: {
+						resource: ['gamma'],
+					},
+				},
+				description:
+					'The API file ID, which usually starts with g_. Get and Export also accept the doc ID from a gamma.app/docs/... URL, but Archive and Delete do not and return 403 for one.',
+			},
+			{
+				displayName: 'Export As',
+				name: 'exportFormat',
+				type: 'options',
+				required: true,
+				options: [
+					{ name: 'PDF', value: 'pdf' },
+					{ name: 'PNG', value: 'png' },
+					{ name: 'PowerPoint (PPTX)', value: 'pptx' },
+				],
+				default: 'pdf',
+				description: 'Format to export to',
+				displayOptions: {
+					show: {
+						resource: ['gamma'],
+						operation: ['export'],
+					},
+				},
+				routing: {
+					request: {
+						body: {
+							exportAs: '={{ $value }}',
+						},
+					},
+				},
+			},
+			{
+				displayName: 'Simplify',
+				name: 'simplify',
+				type: 'boolean',
+				default: true,
+				description:
+					'Whether to return a simplified version of the response instead of the raw data',
+				displayOptions: {
+					show: {
+						resource: ['gamma'],
+						operation: ['get'],
+					},
+				},
+				routing: {
+					output: {
+						postReceive: [
+							{
+								type: 'setKeyValue',
+								enabled: '={{ $value }}',
+								properties: {
+									id: '={{ $responseItem.id }}',
+									title: '={{ $responseItem.title }}',
+									url: '={{ $responseItem.url }}',
+									type: '={{ $responseItem.type }}',
+									archived: '={{ $responseItem.archived }}',
+									updatedTime: '={{ $responseItem.updatedTime }}',
+									authorName: '={{ $responseItem.author ? $responseItem.author.name : null }}',
+									themeId: '={{ $responseItem.themeId }}',
+								},
+							},
+						],
+					},
+				},
+			},
+
+			// ============================================
+			// EXPORT OPERATIONS
+			// ============================================
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['export'],
+					},
+				},
+				options: [
+					{
+						name: 'Get Status',
+						value: 'getStatus',
+						action: 'Get export status',
+						description: 'Poll an export until its status is completed or failed',
+						routing: {
+							request: {
+								method: 'GET',
+								url: '=/v1.0/exports/{{$parameter["exportId"]}}',
+							},
+						},
+					},
+				],
+				default: 'getStatus',
+			},
+			{
+				displayName: 'Export ID',
+				name: 'exportId',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. exp_abc123',
+				description: 'The exportId returned when the export was started',
+				displayOptions: {
+					show: {
+						resource: ['export'],
+					},
+				},
 			},
 		],
 		usableAsTool: true,

@@ -1,454 +1,257 @@
-# @gammatech/n8n-nodes-gamma
+# Gamma node for n8n
 
-Official Gamma community node for n8n - Create AI-powered presentations, documents, and websites directly from your n8n workflows.
+[![npm version](https://img.shields.io/npm/v/@gammatech/n8n-nodes-gamma.svg)](https://www.npmjs.com/package/@gammatech/n8n-nodes-gamma)
+[![CI](https://github.com/gamma-app/n8n-nodes-gamma/actions/workflows/ci.yml/badge.svg)](https://github.com/gamma-app/n8n-nodes-gamma/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Status:** Published on npm  
-**Maintained by:** Max Jackson (Gamma)
+The official [Gamma](https://gamma.app) community node for [n8n](https://n8n.io).
+Generate presentations, documents, webpages and social posts with AI, and manage
+the ones you already have — from inside your n8n workflows.
 
----
-
-## 🎯 What This Does
-
-Integrates Gamma's API v1.0 into n8n, allowing you to:
-- Generate presentations, documents, social posts, and webpages with AI
-- Create content from templates
-- List themes and folders
-- Export to PDF/PPTX
-- Automate content creation workflows
+Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements),
+so every release is cryptographically traceable to the commit and workflow that
+built it. Ships with **zero runtime dependencies**.
 
 ---
 
-## 📦 Installation
+## Installation
 
-### Option 1: From npm
+### From the n8n UI
 
-```bash
-# In n8n
-Settings → Community Nodes → Install
-# Enter: @gammatech/n8n-nodes-gamma
+**Settings → Community nodes → Install**, then enter:
+
+```
+@gammatech/n8n-nodes-gamma
 ```
 
-### Option 2: Local Development
+### Manually
 
 ```bash
-# Clone and build
-git clone <this-repo>
-cd n8n-gamma-node
+npm install @gammatech/n8n-nodes-gamma
+```
+
+### Requirements
+
+| | |
+| --- | --- |
+| n8n | Any version supporting community nodes (`n8nNodesApiVersion` 1) |
+| Node.js | 22.22 or later |
+| Gamma plan | API access — see [access and pricing](https://developers.gamma.app/get-started/access-and-pricing) |
+
+---
+
+## Authentication
+
+The node authenticates with a Gamma API key.
+
+1. In Gamma, go to **Settings → API** and generate a key (it starts with `sk-gamma-`)
+2. In n8n, create a **Gamma API** credential and paste the key
+3. Use **Test** to confirm the connection
+
+The key is stored as a password field and sent as the `X-API-KEY` header. It is
+scoped to the workspace that issued it, and requests spend that workspace's
+credits.
+
+> Gamma also supports OAuth 2.0, which would let a workflow act on behalf of an
+> individual user. It is not yet available here — see [Roadmap](#roadmap).
+
+---
+
+## Operations
+
+| Resource | Operation | Description |
+| --- | --- | --- |
+| **Generation** | Create | Generate a presentation, document, webpage or social post |
+| | Create from Template | Remix an existing Gamma with a new prompt |
+| | Get Status | Poll a generation until it completes |
+| **Gamma** | Get | Retrieve metadata for an existing Gamma |
+| | Export | Start an export to PDF, PNG or PPTX |
+| | Archive | Archive a Gamma (idempotent) |
+| | Delete | Delete permanently (requires workspace admin) |
+| **Export** | Get Status | Poll an export until it completes |
+| **Theme** | List | Browse workspace themes |
+| **Folder** | List | Browse workspace folders |
+| **User** | Get User Information | Account and plan limits behind the API key |
+
+Theme and Folder are also available as searchable pickers wherever a Gamma is
+created, so you select from a list instead of pasting an ID.
+
+### Gamma ID formats
+
+Get and Export accept either the API file ID (usually `g_…`) or the doc ID from
+a `gamma.app/docs/…` URL. **Archive and Delete accept only the file ID** and
+return `403` for a URL slug.
+
+---
+
+## Examples
+
+Importable workflows live in [`examples/`](examples). Both are validated against
+the node's schema on every CI run, so the parameters in them stay correct.
+
+### One card per row or array item
+
+[`examples/one-card-per-item.json`](examples/one-card-per-item.json)
+
+Turns CRM rows, form submissions or any list into a deck where each item gets
+its own card. Join the items with `\n---\n`, set **Card Split** to
+`Input Text Breaks` and **Text Mode** to `Preserve`.
+
+Three things make this easy to get wrong:
+
+- The separator is a line containing only `---`. A bare `---` mid-line is not a break.
+- In that mode **Number of Cards is ignored**, which is why the node hides it.
+- Text with **no** separator produces a *single* card, which usually reads as a
+  bug rather than a setting.
+
+`Preserve` keeps your wording exactly as supplied — the right choice whenever
+text must not be reworded: dosages, legal terms, contract clauses, pricing.
+
+### Generate and wait for the result
+
+[`examples/auto-polling-workflow.json`](examples/auto-polling-workflow.json)
+
+Generation is asynchronous. Create returns a `generationId` immediately, and
+`gammaUrl` / `exportUrl` exist only once the status is `completed`. This
+workflow polls every 5 seconds — the interval Gamma's documentation
+recommends — and loops until the status stops being `pending`.
+
+---
+
+## Development
+
+```bash
+nvm use                 # Node 24, matching CI
 npm install
-npm run build
-npm link
-
-# In your n8n installation
-cd ~/.n8n/custom
-npm link @gammatech/n8n-nodes-gamma
-
-# Start n8n
-n8n start
+npm run dev:n8n         # builds and starts a local n8n with the node loaded
 ```
 
----
+Open <http://localhost:5678> and search for **Gamma** in the nodes panel.
 
-## 🏗️ Project Structure
-
-A declarative-style n8n node, hand-written against Gamma's published API docs.
-The value enums are generated — see `npm run sync:enums`.
-
-```
-n8n-nodes-gamma/
-├── package.json
-├── tsconfig.json
-├── eslint.config.mjs             # n8n's linter (@n8n/node-cli)
-├── credentials/
-│   ├── GammaApi.credentials.ts   # API key authentication
-│   └── icons/gamma.svg
-├── nodes/
-│   └── Gamma/
-│       ├── Gamma.node.ts         # Node definition
-│       ├── Gamma.node.json       # Codex metadata
-│       ├── apiEnums.ts           # GENERATED - do not edit by hand
-│       ├── gamma.svg
-│       └── gamma.png
-├── scripts/
-│   └── sync-api-enums.mjs        # Regenerates apiEnums.ts from Gamma's docs
-├── test/                         # Run with `npm test`
-├── examples/                     # Importable workflows
-├── docs/
-│   ├── PUBLISHING.md             # How to publish to npm
-│   ├── VERIFICATION.md           # n8n verification process
-│   └── n8n-resources.md          # All n8n documentation links
-└── examples/
-    ├── basic-presentation.json   # Simple workflow example
-    ├── zapier-alternative.json   # Replacing Zapier
-    └── content-pipeline.json     # Advanced automation
-```
-
----
-
-## 🚀 Quick Start (Development)
-
-### Prerequisites
-
-- Node.js 22.22 or later — this repo pins Node 24 in `.nvmrc`, and CI reads the
-  same file. Run `nvm use` before installing; a lockfile generated by npm 10
-  (which ships with Node 22) is rejected by npm 11.
-- npm (the pnpm migration was reverted — see `docs/n8n-readiness-audit.md`)
-- n8n installed globally (`npm install n8n -g`), or use `npm run dev:n8n`
-
-### Development Workflow
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Build the node
-npm run build
-
-# 3. Link to local n8n
-npm link
-cd ~/.n8n/custom
-npm link @gammatech/n8n-nodes-gamma
-
-# 4. Start n8n
-n8n start
-
-# 5. Open browser at http://localhost:5678
-# Search for "Gamma" in nodes panel
-```
-
-### Watch Mode (Auto-rebuild)
-
-```bash
-npm run dev       # tsc --watch, type-check loop only
-npm run dev:n8n   # builds and boots a local n8n with the node loaded
-```
-
-n8n reads node descriptions once at boot, so after changing any parameter you
-must restart it — a rebuild alone won't show up.
+> n8n reads node descriptions once at boot. After changing any parameter you
+> must restart it — a rebuild alone will not show up.
 
 ### Scripts
 
-| Command | Does |
+| Command | Description |
 | --- | --- |
 | `npm run build` | Compile TypeScript and copy icons into `dist` |
-| `npm run lint` / `lint:fix` | n8n's community-node linter |
-| `npm test` | Full offline suite (see Testing below) |
-| `npm run test:live` | Opt-in tests against the real API; needs `GAMMA_API_KEY` |
+| `npm run dev` | Type-check in watch mode |
 | `npm run dev:n8n` | Local n8n with this node loaded |
+| `npm run lint` / `lint:fix` | n8n's community-node linter |
+| `npm test` | Full offline suite |
+| `npm run test:live` | Opt-in tests against the real API |
 | `npm run sync:enums` | Regenerate `apiEnums.ts` from Gamma's published docs |
-| `npm run sync:enums:check` | Fail if the generated enums are stale (runs in CI) |
 
----
+### Testing
 
-## 🧪 Testing
-
-`npm test` builds and runs everything offline with Node's built-in test runner —
-no test framework dependency:
+`npm test` runs offline on Node's built-in test runner — no test framework
+dependency:
 
 | Suite | Covers |
 | --- | --- |
-| `test/presend.test.js` | Every `preSend` hook: parameter paths and request-body composition |
-| `test/routing.test.js` | Method/URL per operation, request defaults, credential auth header |
-| `test/visibility.test.js` | `displayOptions` rules, asserted via n8n's own `displayParameter` |
-| `test/examples.test.js` | Example workflows vs the node schema, icon integrity, manifest |
-| `test/enums.test.js` | The generator's parsing logic, plus the generated enums |
+| `presend` | Every request hook: parameter paths and body composition |
+| `routing` | Method and URL per operation, request defaults, credential auth |
+| `visibility` | Parameter visibility rules, via n8n's own `displayParameter` |
+| `gamma-lifecycle` | The Gamma and Export resources |
+| `credentials` | Resource Locator pickers and list limits |
+| `examples` | Example workflows against the node schema, icon integrity |
+| `enums` | The enum generator's parsing, and the generated output |
 
-### Live tests
-
-Everything above stops at the HTTP boundary. To exercise the real API:
+Live tests need a key and are skipped without one:
 
 ```bash
 GAMMA_API_KEY=sk-gamma-... npm run test:live
 ```
 
-These confirm the credential test endpoint works, that a bad key is rejected,
-and — usefully — whether the undocumented `GET /v1.0/me` endpoint exists, which
-decides whether the `User` resource should stay.
+They spend no credits unless you also set `GAMMA_LIVE_GENERATE=1`. Archive and
+delete are never exercised.
 
-They do **not** spend credits unless you also opt in:
+### Generated values
+
+`nodes/Gamma/apiEnums.ts` is generated from Gamma's published documentation —
+image models, output languages, and the card dimensions valid for each format.
+Do not edit it by hand; run `npm run sync:enums`. CI checks daily that it is
+still current, so a new image model surfaces as a failing build rather than a
+support ticket.
+
+---
+
+## Releasing
+
+Releases publish from GitHub Actions with a provenance attestation, which n8n
+requires for verified community nodes. **Do not publish from a workstation** — a
+package without provenance cannot be verified, and the version number is spent.
 
 ```bash
-GAMMA_API_KEY=... GAMMA_LIVE_GENERATE=1 npm run test:live
+# 1. Add a CHANGELOG.md section for the version.
+#    Release notes come from it, and the workflow refuses to publish without one.
+# 2. Bump, commit, open a PR.
+npm version minor --no-git-tag-version
+
+# 3. After merging, tag the merge commit and push the tag.
+git checkout main && git pull
+git tag -a 0.4.0 -m "0.4.0"
+git push origin 0.4.0
 ```
 
-That adds a real generation using the one-card-per-item request shape.
+The tag triggers the publish workflow, which builds, lints, tests, verifies the
+tag matches `package.json`, publishes with provenance, and creates the GitHub
+Release.
+
+Full process, including the local preflight checklist and n8n's verification
+requirements: [`docs/n8n-publishing.md`](docs/n8n-publishing.md).
 
 ---
 
-## 🔑 Authentication
+## Roadmap
 
-The node requires a Gamma API key:
+Current coverage is 11 operations across 6 resources. The Gamma API exposes
+more; these are the gaps, roughly in priority order.
 
-1. Log into [gamma.app](https://gamma.app)
-2. Go to Settings & Members → API
-3. Generate API key
-4. Copy key (starts with `sk-gamma-`)
-5. In n8n: Create credential → Gamma API
-6. Paste API key
+**Planned**
 
----
+- **Standalone image generation** — `POST /images` and its status endpoint, so
+  workflows can generate on-brand images without creating a Gamma
+- **Comments** — read comment threads, with `updatedSince` for efficient delta
+  polling
+- **Analytics** — document, per-card and per-viewer engagement metrics
+- **Multi-page generation** — the `pages` array, building a multi-page File in
+  one request and optionally publishing it as a site
+- **Auto-pagination** on list operations, so they emit one item per result
+  instead of a page wrapper
 
-## 📚 Available Operations
+**Blocked**
 
-### Generations Resource
+- **OAuth 2.0.** Implemented and then withdrawn. Gamma's dynamic client
+  registration only accepts redirect URIs on an allow-list, and n8n's redirect
+  URL is per-instance, so no n8n user can currently register a client. Offering
+  an authentication method that cannot be completed is worse than not offering
+  it. Tracked in
+  [`docs/n8n-integration-plan.md`](docs/n8n-integration-plan.md).
 
-**Create Generation**
-- Generate presentations, documents, social posts, or webpages
-- Parameters: inputText, textMode, format, plus Additional Options for cards,
-  text, images, sharing, theme, folder and export
-- Returns: generationId for status polling
+**Under consideration**
 
-**Get Generation Status**
-- Poll for generation completion
-- Returns: status, gammaUrl, exportUrl, credits used
-
-**Create from Template**
-- Remix existing Gamma with new prompt
-- Parameters: prompt, gammaId (template), themeId, imageOptions
-- Returns: generationId
-
-### Themes Resource
-
-**List Themes**
-- Get available themes for styling
-- Parameters: limit, query (search), cursor (pagination)
-- Returns: themes with IDs and names
-
-### Folders Resource
-
-**List Folders**
-- Get workspace folders for organization
-- Parameters: limit, query (search), cursor (pagination)
-- Returns: folders with IDs and names
-
-### User Resource
-
-**Get Me**
-- Get authenticated user info
-- Returns: email, workspaceName
+- **n8n Cloud verification.** Requires submission through the
+  [n8n Creator Portal](https://creators.n8n.io/nodes) and review against n8n's
+  UX guidelines.
 
 ---
 
-## 🎨 Example Workflows
+## Support
 
-### ⚡ Auto-Polling Workflow (Recommended!)
+- **Bugs and feature requests:** [GitHub issues](https://github.com/gamma-app/n8n-nodes-gamma/issues)
+- **Gamma API documentation:** <https://developers.gamma.app>
+- **Gamma help centre:** <https://help.gamma.app>
 
-**Problem**: Gamma generations are async and take 30-90 seconds to complete.  
-**Solution**: Use our auto-polling workflow template!
-
-📥 **Import the workflow**: `examples/auto-polling-workflow.json`
-
-This workflow automatically:
-- ✅ Creates the generation
-- ✅ Waits 30 seconds
-- ✅ Checks status
-- ✅ Loops until completed
-- ✅ Outputs gammaUrl when done
-
-**No more manual clicking!** This gives users a much better experience.
-
-### Basic: Generate Presentation (Manual Polling)
-
-```
-Trigger (Manual/Schedule)
-    ↓
-Gamma: Create Generation
-    - inputText: "Introduction to renewable energy"
-    - format: presentation
-    - textMode: generate
-    - Additional Options → Number of Cards: 10
-    ↓
-Gamma: Get Generation Status 
-    (Click Execute repeatedly until status = "completed")
-    ↓
-Send Email with gammaUrl
-```
-
-⚠️ **Note**: Gamma's docs recommend polling every 5 seconds until `status` is
-`completed` or `failed`. Rather than clicking Execute repeatedly, import
-`examples/auto-polling-workflow.json`, which loops for you.
-
-**Turning rows into one card each?** See `examples/one-card-per-item.json`. Join
-your items with `\n---\n`, set **Card Split** to `Input Text Breaks` and
-**Text Mode** to `Preserve`. Note that in that mode Number of Cards is ignored,
-and text with no separator produces a single card.
-
-### Advanced: Content Pipeline
-
-```
-RSS Feed (New Article)
-    ↓
-Extract Content
-    ↓
-Gamma: Create Generation
-    - inputText: {{article content}}
-    - format: presentation
-    ↓
-Wait for Completion (poll)
-    ↓
-Gamma: Create from Template (social version)
-    - gammaId: {{generated gammaId}}
-    - format: social
-    ↓
-Post to Social Media
-```
+For pull requests, `npm test` and `npm run lint` should both pass. The test
+suite is deliberately strict about things that stay invisible until a user hits
+them — parameter paths, which endpoints the node targets, and whether the
+example workflows still match the node's schema — so a failure there usually
+means something real.
 
 ---
 
-## 🛠️ Development Guide
+## License
 
-### Built With
-
-- **TypeScript** - node language
-- **n8n-workflow** - n8n node types (a peer dependency; this package ships with
-  zero runtime dependencies)
-- **@n8n/node-cli** - n8n's official linter and local dev runner (dev only)
-- **Gamma's published API docs** - the source the value enums are generated from
-
-### Key Files
-
-**`nodes/Gamma/Gamma.node.ts`**
-- Main node implementation, declarative style
-- Hand-written; an earlier version was scaffolded from the OpenAPI spec, but the
-  generator is no longer a dependency
-- Note that parameters inside a collection must be read by their full path in
-  `preSend` hooks (`additionalOptions.tone`, not `tone`) — `npm test` enforces this
-
-**`nodes/Gamma/apiEnums.ts`**
-- Generated. Do not edit by hand; run `npm run sync:enums`
-
-**`credentials/GammaApi.credentials.ts`**
-- API key authentication
-- Header: `X-API-KEY`
-
-**`package.json`**
-- npm package configuration
-- MUST include `n8n-community-node-package` in keywords
-- MUST start with `n8n-nodes-`
-
----
-
-## 📝 Publishing
-
-### To npm (Unverified)
-
-```bash
-# 1. Update version
-npm version patch  # or minor, major
-
-# 2. Build
-npm run build
-
-# 3. Publish
-npm publish
-```
-
-Anyone with self-hosted n8n can install immediately.
-
-### For Verification (n8n Cloud)
-
-Requirements for verified community nodes:
-- ✅ MIT license
-- ✅ No runtime dependencies in package.json
-- ✅ Passes `npm run lint`
-- ✅ Good documentation
-- ✅ Follows n8n conventions
-
-**Steps:**
-1. Publish to npm (unverified first)
-2. Submit via [n8n Creator Portal](https://n8n.io/creators)
-3. Wait for manual review
-4. Once approved → available on n8n Cloud
-
-See `docs/VERIFICATION.md` for details.
-
----
-
-## 🔗 Resources
-
-**Official Gamma:**
-- API Docs: https://developers.gamma.app
-- Help Center: https://help.gamma.app
-- API Slack: [Contact for access]
-
-**n8n Documentation:**
-- Create nodes: https://docs.n8n.io/connect/create-nodes
-- Submit community nodes: https://docs.n8n.io/connect/create-nodes/deploy-your-node/submit-community-nodes
-- Verification guidelines: https://docs.n8n.io/connect/create-nodes/build-your-node/reference/verification-guidelines
-
-**Gamma API:**
-- Developer docs: https://developers.gamma.app
-- Generate from text: https://developers.gamma.app/guides/generate-api-parameters-explained
-
-**This repo:**
-- `docs/n8n-publishing.md` — release process and verification checklist
-- `docs/n8n-integration-plan.md` — API coverage review and roadmap
-- `docs/n8n-readiness-audit.md` — current state against the checklist
-
----
-
-## 💪 Why This Matters for Gamma
-
-### Developer Relations Play
-
-**This n8n node:**
-- Expands Gamma's automation ecosystem beyond Zapier/Make
-- Reaches self-hosted automation users (enterprises, privacy-focused)
-- Shows commitment to open integration ecosystem
-- Provides reference implementation for community
-
-**For your DevRel role:**
-- Demonstrates technical ability (built official integration)
-- Shows ownership (end-to-end from spec to published node)
-- Community engagement (support users in n8n forums)
-- Content creation opportunity (tutorials, videos, blog posts)
-
----
-
-## 📊 Success Metrics
-
-Track these to show impact:
-- npm downloads/week
-- n8n Cloud installations (after verification)
-- Community forum mentions
-- GitHub stars/forks
-- Support tickets reduced (self-service via node)
-
----
-
-## 🎯 Roadmap
-
-**Phase 1: MVP** (You are here)
-- [x] Project setup
-- [ ] Generate node from OpenAPI spec
-- [ ] Test locally
-- [ ] Publish to npm (unverified)
-
-**Phase 2: Polish**
-- [ ] Add examples folder with workflows
-- [ ] Create video tutorial
-- [ ] Write blog post
-- [ ] Submit for verification
-
-**Phase 3: Growth**
-- [ ] Community support in n8n forums
-- [ ] Advanced workflow examples
-- [ ] Integration guides
-- [ ] Case studies
-
----
-
-## 👥 Contributing
-
-This is an official Gamma integration. For bugs or features:
-- Internal: Message Max directly
-- External (after publishing): GitHub issues
-
----
-
-**Status:** Published to npm ✅  
-**Next Step:** Continue n8n review / listing workflow as needed
-
-See `docs/SETUP.md` for complete development guide.
-
-
-
+[MIT](LICENSE)

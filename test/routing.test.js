@@ -13,11 +13,19 @@ const operations = description.properties
 	.flatMap((p) => (p.displayOptions?.show?.resource ?? []).flatMap((resource) =>
 		p.options.map((o) => ({ resource, operation: o.value, routing: o.routing, action: o.action }))));
 
-// Endpoints Gamma documents at developers.gamma.app (llms.txt, 2026-08-24).
+// Endpoints Gamma documents at developers.gamma.app (llms.txt, verified
+// 2026-08-25). Adding a route to the node without adding it here fails the
+// "routes only to documented endpoints" test below -- which is the point: every
+// new endpoint should be checked against the docs deliberately.
 const DOCUMENTED = new Set([
 	'POST /v1.0/generations',
 	'POST /v1.0/generations/from-template',
 	'GET /v1.0/generations/{id}',
+	'GET /v1.0/gammas/{id}',
+	'POST /v1.0/gammas/{id}/export',
+	'POST /v1.0/gammas/{id}/archive',
+	'DELETE /v1.0/gammas/{id}',
+	'GET /v1.0/exports/{id}',
 	'GET /v1.0/themes',
 	'GET /v1.0/folders',
 ]);
@@ -63,8 +71,10 @@ describe('credential', () => {
 });
 
 describe('operations', () => {
-	it('declares at least the six shipped operations', () => {
-		assert.ok(operations.length >= 6, `found ${operations.length}`);
+	it('declares an operation for every shipped resource', () => {
+		const resources = [...new Set(operations.map((o) => o.resource))].sort();
+		assert.deepStrictEqual(resources,
+			['export', 'folder', 'gamma', 'generation', 'theme', 'user']);
 	});
 
 	for (const op of operations) {

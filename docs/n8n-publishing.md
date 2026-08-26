@@ -405,7 +405,9 @@ npx @n8n/scan-community-package @gammatech/n8n-nodes-gamma   # must pass
 - [ ] The scanner passes.
 - [ ] Fresh install into a clean n8n from the registry (not `npm link`) and run
       one workflow.
-- [ ] GitHub release exists with notes.
+- [ ] GitHub Release exists with notes. `publish.yml` creates it from the
+      matching `CHANGELOG.md` section, and refuses to publish at all if that
+      section is missing — so write the changelog entry *before* tagging.
 
 ### 3.4 Rollback
 
