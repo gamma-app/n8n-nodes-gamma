@@ -45,6 +45,49 @@ describe('resource locators', () => {
 	}
 });
 
+describe('resource locator backward compatibility', () => {
+	// Theme and Folder used to be plain string fields. n8n's extractValue returns
+	// any value that is not a { mode, value } object unchanged
+	// (packages/core/.../extract-value.ts), so a workflow saved before this change
+	// still sends its stored ID. These assert the hooks cope with the legacy shape.
+	const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
+	const node = new Gamma();
+
+	function hookFor(paramName) {
+		let found;
+		(function walk(props) {
+			for (const p of props || []) {
+				if (p.name === paramName && p.routing?.send?.preSend?.[0]) found = p.routing.send.preSend[0];
+				if (Array.isArray(p.options)) walk(p.options.filter((o) => o && o.name && o.type));
+			}
+		})(node.description.properties);
+		return found;
+	}
+
+	const ctx = (value) => ({
+		getNodeParameter: () => value,
+		getNode: () => ({ name: 'Gamma', type: 'gamma' }),
+	});
+
+	it('a legacy string themeId still reaches the request body', async () => {
+		const ro = { body: {} };
+		await hookFor('themeId').call(ctx('legacy_theme_id'), ro);
+		assert.strictEqual(ro.body.themeId, 'legacy_theme_id');
+	});
+
+	it('a legacy string folder still reaches the request body', async () => {
+		const ro = { body: {} };
+		await hookFor('folderIds').call(ctx('legacy_folder_id'), ro);
+		assert.deepStrictEqual(ro.body.folderIds, ['legacy_folder_id']);
+	});
+
+	it('an empty picker selection sends nothing at all', async () => {
+		const ro = { body: {} };
+		await hookFor('themeId').call(ctx(''), ro);
+		assert.deepStrictEqual(ro.body, {}, 'an unset Theme must not send themeId');
+	});
+});
+
 describe('list operation limits', () => {
 	// Gamma caps `limit` at 50 on both /themes and /folders; the node previously
 	// allowed 200, which the API rejects.
