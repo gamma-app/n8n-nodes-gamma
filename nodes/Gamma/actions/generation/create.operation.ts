@@ -130,13 +130,21 @@ export const createDescription: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['generation'],
-				operation: ['create'],
+				// File-level options apply to a multi-page generation too. The
+				// per-page ones below are hidden for it individually, because
+				// `pages` overrides them.
+				operation: ['create', 'createMultiPage'],
 			},
 		},
 		options: [
 			{
 				displayName: 'Additional Instructions',
 				name: 'additionalInstructions',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'string',
 				typeOptions: {
 					rows: 2,
@@ -167,6 +175,9 @@ export const createDescription: INodeProperties[] = [
 				default: '',
 				description: 'AI model to generate images (only applies if Image Source is AI Generated)',
 				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
 					show: {
 						imageSource: ['aiGenerated'],
 					},
@@ -190,6 +201,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Audience',
 				name: 'audience',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'string',
 				default: '',
 				placeholder: 'e.g. business executives',
@@ -325,6 +341,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Card Split',
 				name: 'cardSplit',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'options',
 				options: [
 					{
@@ -572,6 +593,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Image Source',
 				name: 'imageSource',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'options',
 				options: [
 					{ name: 'AI Generated', value: 'aiGenerated', description: 'Generate images using AI models' },
@@ -611,6 +637,9 @@ export const createDescription: INodeProperties[] = [
 				placeholder: 'e.g. photorealistic, minimal, artistic',
 				description: 'Style description for AI-generated images (max 500 characters)',
 				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
 					show: {
 						imageSource: ['aiGenerated'],
 					},
@@ -634,6 +663,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Language',
 				name: 'language',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'options',
 				options: LANGUAGE_OPTIONS,
 				default: 'en',
@@ -665,7 +699,10 @@ export const createDescription: INodeProperties[] = [
 				default: 10,
 				description: 'Target number of cards to generate. Applies only when Card Split is Auto. Your plan caps this (60 on Pro, Teams and Business; 75 on Ultra) -- the User: Get User Information operation returns your exact limit as maxGenerateCards.',
 				displayOptions: {
+					// Hidden when either applies: `pages` overrides numCards entirely,
+					// and Gamma ignores it when splitting on text breaks.
 					hide: {
+						'/operation': ['createMultiPage'],
 						'/additionalOptions.cardSplit': ['inputTextBreaks'],
 					},
 				},
@@ -694,6 +731,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Text Amount',
 				name: 'textAmount',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'options',
 				options: [
 					{ name: 'Brief', value: 'brief' },
@@ -786,6 +828,11 @@ export const createDescription: INodeProperties[] = [
 			{
 				displayName: 'Tone',
 				name: 'tone',
+				displayOptions: {
+					hide: {
+						'/operation': ['createMultiPage'],
+					},
+				},
 				type: 'string',
 				default: '',
 				placeholder: 'e.g. professional and friendly',

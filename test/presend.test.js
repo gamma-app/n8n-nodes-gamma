@@ -16,7 +16,8 @@ const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
 
 const node = new Gamma();
 
-const TOP_LEVEL = new Set(['resource', 'operation', 'templateThemeId', 'generationId', 'inputText']);
+const TOP_LEVEL = new Set(['resource', 'operation', 'templateThemeId', 'generationId', 'inputText',
+	'pagesJson', 'pagesUi']);
 
 // Canned values per parameter name.
 const VALUES = {
@@ -36,6 +37,9 @@ const VALUES = {
 	imageType: 'photo', sizePreset: 'slide', imageThemeId: 'theme_img',
 	imageGenerationId: 'imggen_abc', savedMediaId: 'media_abc',
 	referenceImages: { image: [{ url: 'https://example.com/ref.png', role: 'subject' }] },
+	// Multi-page
+	pagesJson: '[{"inputText":"First page"},{"inputText":"Second page","path":"second"}]',
+	pagesUi: { page: [{ inputText: 'From fields', title: '', path: 'p1' }] },
 };
 
 

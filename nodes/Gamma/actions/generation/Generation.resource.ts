@@ -29,6 +29,19 @@ export const generationOperations: INodeProperties[] = [
 				},
 			},
 			{
+				name: 'Create Multi-Page',
+				value: 'createMultiPage',
+				action: 'Create multi page file',
+				description:
+					'Generate a file of up to 50 pages in one request, optionally published as a Gamma site',
+				routing: {
+					request: {
+						method: 'POST',
+						url: '/v1.0/generations',
+					},
+				},
+			},
+			{
 				name: 'Create From Template',
 				value: 'createFromTemplate',
 				action: 'Create from template',

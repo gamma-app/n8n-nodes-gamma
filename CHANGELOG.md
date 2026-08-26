@@ -36,6 +36,26 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   makes Gamma skip a curated style and any theme, which it reports back as a
   warning.
 
+- **Multi-page generation** — a `Create Multi-Page` operation building a file of
+  up to 50 pages in one request, optionally published as a Gamma site.
+
+  It is a **separate operation rather than an option on Create**, because the API
+  is explicit that a request supplies *either* `inputText` *or* a `pages` array.
+  Offering `pages` alongside a required `inputText` would mean a required field
+  that is silently ignored — the same trap as `numCards` under
+  `inputTextBreaks`.
+
+  Pages can be supplied as **JSON** (the default, and what you want when
+  building pages from upstream items) or **filled in by hand** for a handful.
+  Both paths share one validation step, so they fail identically: not an array,
+  empty, over 50, a non-object entry, or a page missing `inputText` each raise a
+  specific error rather than a 400 from the API.
+
+  The options `pages` overrides — text mode, number of cards, format, card
+  split, and the text and image option groups — are **hidden for this
+  operation**, since the API ignores them. File-level options (theme, folder,
+  card dimensions, sharing, export, title) stay, because they still apply.
+
 - **Comment resource** — read comment threads on a Gamma, with cursor paging,
   `includeArchived`, and **`updatedSince`**. That last one is what makes the
   endpoint worth having in n8n: a scheduled workflow can poll for what changed
