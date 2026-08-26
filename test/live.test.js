@@ -131,6 +131,46 @@ describe('live Gamma API', { skip }, () => {
 		});
 	});
 
+	// Needs a real gamma to point at. Nothing here mutates: archive and delete are
+	// deliberately never exercised, because a test suite should not be able to
+	// destroy someone's document.
+	const GAMMA_ID = process.env.GAMMA_TEST_GAMMA_ID;
+	describe('gamma lifecycle', {
+		skip: GAMMA_ID ? false : 'set GAMMA_TEST_GAMMA_ID to a gamma file ID (g_...) to run',
+	}, () => {
+		it('Get returns the documented shape', async () => {
+			const res = await call(`/v1.0/gammas/${GAMMA_ID}`);
+			assert.strictEqual(res.status, 200, `got ${res.status}`);
+			const body = await res.json();
+			// The node's Simplify option assumes these exist.
+			for (const key of ['id', 'title', 'url', 'type', 'archived', 'updatedTime', 'themeId']) {
+				assert.ok(key in body, `response has no ${key}; Simplify would emit null for it`);
+			}
+			assert.ok('author' in body, 'no author to flatten into authorName');
+			console.log(`\n    "${body.title}" (${body.type}), archived=${body.archived}`);
+			console.log(`    fields: ${Object.keys(body).length} — over 10, which is why Simplify exists\n`);
+		});
+
+		it('Export starts a job and the status endpoint answers', {
+			skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (may spend credits)',
+		}, async () => {
+			const start = await call(`/v1.0/gammas/${GAMMA_ID}/export`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ exportAs: 'pdf' }),
+			});
+			const started = await start.json();
+			assert.strictEqual(start.status, 200, `export start: ${start.status} ${JSON.stringify(started)}`);
+			assert.ok(started.exportId, 'no exportId returned');
+
+			const status = await call(`/v1.0/exports/${started.exportId}`);
+			assert.strictEqual(status.status, 200);
+			const body = await status.json();
+			assert.ok(['pending', 'completed', 'failed'].includes(body.status), `unexpected status ${body.status}`);
+			console.log(`\n    export ${started.exportId} -> ${body.status}\n`);
+		});
+	});
+
 	describe('generation', { skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (spends credits)' }, () => {
 		it('accepts the one-card-per-item request the node builds', async () => {
 			// The exact shape examples/one-card-per-item.json produces.

@@ -30,6 +30,7 @@ const VALUES = {
 	imageModel: 'flux-1-pro', templateThemeId: 'theme_tpl', folderQuery: 'marketing',
 	cardDimensionsPresentation: '16x9', cardDimensionsDocument: 'a4',
 	cardDimensionsSocial: '1x1', cardDimensionsWebpage: 'fluid',
+	title: 'Q3 Results Overview',
 };
 
 
@@ -124,6 +125,7 @@ describe('preSend hooks', () => {
 				['a@example.com', 'b@example.com']);
 		});
 		it('keeps top-level scalars', () => {
+			assert.strictEqual(body.title, 'Q3 Results Overview');
 			assert.strictEqual(body.additionalInstructions, 'be concise');
 			assert.strictEqual(body.exportAs, 'pdf');
 			// themeId is written by two mutually-exclusive hooks (generation vs template).

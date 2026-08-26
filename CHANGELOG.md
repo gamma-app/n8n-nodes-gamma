@@ -5,6 +5,34 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Gamma resource** — work with an existing Gamma rather than only creating
+  one: **Get** (metadata), **Export** (to PDF, PNG or PPTX), **Archive** and
+  **Delete**. Export is the capability people asked for most: previously a Gamma
+  could only be exported at generation time via `exportAs`.
+- **Export resource** with **Get Status**, to poll an export the same way
+  generations are polled.
+- **Title** on Create, so a generated Gamma can be named deterministically
+  instead of relying on one derived from the content.
+- **Simplify** on Get Gamma. That response returns 11 fields, which is the first
+  time in this node the guideline's 10-field threshold has actually been
+  crossed. It reduces to 8 and flattens the nested author to `authorName`.
+- `scripts/changelog-section.mjs`, and `publish.yml` now creates a GitHub
+  Release from the matching changelog section. The repo previously had no
+  Releases at all — the notes existed but were never surfaced. The check runs
+  before `npm publish`, so a version with no changelog entry fails the run
+  rather than shipping and then having nothing to say for itself.
+
+### Changed
+
+- Delete emits `deleted: true` alongside `gammaId`, as n8n's UX guidelines ask,
+  rather than passing the raw `{ status, gammaId, message }` through.
+- Resource options are alphabetised, which n8n's linter requires once there are
+  more than a handful.
+
 ## [0.3.0] - 2026-08-25
 
 Theme and Folder become searchable pickers, two more values the API rejects are
