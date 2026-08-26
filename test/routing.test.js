@@ -21,11 +21,19 @@ const DOCUMENTED = new Set([
 	'POST /v1.0/generations',
 	'POST /v1.0/generations/from-template',
 	'GET /v1.0/generations/{id}',
+	'POST /v1.0/images',
+	'GET /v1.0/images/{id}',
+	'POST /v1.0/images/media/{id}/archive',
 	'GET /v1.0/gammas/{id}',
 	'POST /v1.0/gammas/{id}/export',
 	'POST /v1.0/gammas/{id}/archive',
 	'DELETE /v1.0/gammas/{id}',
 	'GET /v1.0/exports/{id}',
+	'GET /v1.0/gammas/{id}/comments',
+	'GET /v1.0/gammas/{id}/analytics',
+	'GET /v1.0/gammas/{id}/analytics/cards',
+	'GET /v1.0/gammas/{id}/analytics/viewers',
+	'GET /v1.0/gammas/{id}/analytics/viewers/{id}',
 	'GET /v1.0/themes',
 	'GET /v1.0/folders',
 ]);
@@ -74,7 +82,8 @@ describe('operations', () => {
 	it('declares an operation for every shipped resource', () => {
 		const resources = [...new Set(operations.map((o) => o.resource))].sort();
 		assert.deepStrictEqual(resources,
-			['export', 'folder', 'gamma', 'generation', 'theme', 'user']);
+			['analytics', 'comment', 'export', 'folder', 'gamma', 'generation', 'image',
+				'theme', 'user']);
 	});
 
 	for (const op of operations) {

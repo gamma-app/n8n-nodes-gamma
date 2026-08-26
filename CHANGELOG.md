@@ -5,6 +5,82 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`nodes/Gamma/` split into modules**, following the structure n8n uses for its
+  own large nodes (Airtable v2). `Gamma.node.ts` goes from 1,556 lines to 39: a
+  shell that imports assembled properties and the `listSearch` methods. Each
+  resource now lives under `actions/<resource>/`, with one file per operation
+  that has parameters of its own.
+
+  This is a pure reorganisation. The built node description is **byte-identical**
+  before and after — verified by serialising it (including function bodies) and
+  diffing — so nothing n8n sees has changed.
+
+  `additionalOptions` deliberately stays in one file. n8n's linter enforces
+  alphabetical ordering of a collection's members, and assembling them from
+  several modules would move that ordering out of reach of the static check.
+
+### Added
+
+- **Image resource** — generate a standalone on-brand image from a prompt,
+  without creating a Gamma. **Create**, **Get Status** and **Archive Media**,
+  covering `POST /images`, `GET /images/{id}` and the media-archive endpoint.
+
+  Options match the API exactly: four image types, five size presets, an
+  optional Theme (reusing the same picker as the Generation resource), and
+  reference images as repeatable URL + role rows. The reference-image
+  description states the thing that surprises people — supplying references
+  makes Gamma skip a curated style and any theme, which it reports back as a
+  warning.
+
+- **Multi-page generation** — a `Create Multi-Page` operation building a file of
+  up to 50 pages in one request, optionally published as a Gamma site.
+
+  It is a **separate operation rather than an option on Create**, because the API
+  is explicit that a request supplies *either* `inputText` *or* a `pages` array.
+  Offering `pages` alongside a required `inputText` would mean a required field
+  that is silently ignored — the same trap as `numCards` under
+  `inputTextBreaks`.
+
+  Pages can be supplied as **JSON** (the default, and what you want when
+  building pages from upstream items) or **filled in by hand** for a handful.
+  Both paths share one validation step, so they fail identically: not an array,
+  empty, over 50, a non-object entry, or a page missing `inputText` each raise a
+  specific error rather than a 400 from the API.
+
+  The options `pages` overrides — text mode, number of cards, format, card
+  split, and the text and image option groups — are **hidden for this
+  operation**, since the API ignores them. File-level options (theme, folder,
+  card dimensions, sharing, export, title) stay, because they still apply.
+
+- **Comment resource** — read comment threads on a Gamma, with cursor paging,
+  `includeArchived`, and **`updatedSince`**. That last one is what makes the
+  endpoint worth having in n8n: a scheduled workflow can poll for what changed
+  rather than re-reading every thread.
+
+- **Analytics resource** — all four endpoints: document totals, per-card
+  engagement, a paginated viewer list, and one viewer's per-card detail.
+
+  Permissions shape the answer rather than merely gating it: every response
+  carries a `scope` of `all` or `self`, so an API key with only `edit`
+  permission gets its own row back rather than the workspace's. The operation
+  and parameter descriptions say so, because otherwise a thin response reads as
+  a bug.
+
+- **`Simplify` on Get Document analytics and Get Many comments.** Neither
+  response exceeds the guideline's 10-field threshold, but both carry one field
+  that dominates the payload — a 30-entry `dailyViews` array, and `targetHtml`
+  plus nested `replies`. Simplify drops those, collapsing replies to a count.
+
+- `test/structure.test.js` guards the risk the split introduces: that a
+  mis-ordered import scatters one resource's parameters through another's. It
+  asserts each resource occupies one contiguous run, every resource in the
+  selector has exactly one operation parameter, and every picker references a
+  `listSearch` method that exists.
+
 ## [0.4.0] - 2026-08-25
 
 The node can now work with Gammas that already exist, not only create new ones.

@@ -171,6 +171,45 @@ describe('live Gamma API', { skip }, () => {
 		});
 	});
 
+	// Image generation spends credits, so it sits behind the same opt-in as
+	// generation. The unauthenticated shape check below always runs.
+	describe('images', () => {
+		it('rejects a request with no prompt, which the API requires', async () => {
+			const res = await call('/v1.0/images', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ type: 'photo' }),
+			});
+			assert.strictEqual(res.status, 400, `expected 400 for a missing prompt, got ${res.status}`);
+		});
+
+		it('generates an image and the status endpoint answers', {
+			skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (spends credits)',
+		}, async () => {
+			const start = await call('/v1.0/images', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					prompt: 'A cyclist on a coastal road at sunrise',
+					type: 'photo',
+					sizePreset: 'slide',
+				}),
+			});
+			const started = await start.json();
+			assert.strictEqual(start.status, 200, `${start.status}: ${JSON.stringify(started)}`);
+			assert.ok(started.imageGenerationId, 'no imageGenerationId returned');
+			if (started.warnings?.length) {
+				console.log(`\n    warnings: ${started.warnings.map((w) => w.code).join(', ')}`);
+			}
+
+			const status = await call(`/v1.0/images/${started.imageGenerationId}`);
+			assert.strictEqual(status.status, 200);
+			const body = await status.json();
+			assert.ok(['pending', 'completed', 'failed'].includes(body.status));
+			console.log(`\n    image ${started.imageGenerationId} -> ${body.status}\n`);
+		});
+	});
+
 	describe('generation', { skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (spends credits)' }, () => {
 		it('accepts the one-card-per-item request the node builds', async () => {
 			// The exact shape examples/one-card-per-item.json produces.
