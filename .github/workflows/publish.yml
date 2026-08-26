@@ -46,7 +46,10 @@ jobs:
     permissions:
       # Required to mint the OIDC token that signs the provenance attestation.
       id-token: write
-      contents: read
+      # Required to create the GitHub Release. Publishing alone only needs
+      # `read`, but without a Release the tag carries no notes anywhere a user
+      # would look.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +71,11 @@ jobs:
             exit 1
           fi
 
+      - name: Check the CHANGELOG has notes for this version
+        # Fails before publishing rather than after, so a release cannot ship to
+        # npm and then turn out to have nothing to say for itself.
+        run: node scripts/changelog-section.mjs "$GITHUB_REF_NAME" > /dev/null
+
       - name: Build
         run: npm run build
 
@@ -83,3 +91,24 @@ jobs:
           npm publish --provenance --access public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create the GitHub Release
+        # Notes come from CHANGELOG.md, which is written by hand during review,
+        # rather than from auto-generated commit lists.
+        run: |
+          node scripts/changelog-section.mjs "$GITHUB_REF_NAME" > /tmp/release-notes.md
+          {
+            echo
+            echo "---"
+            echo
+            echo "Install: \`npm install ${PACKAGE_NAME}@${GITHUB_REF_NAME}\`, or search for **Gamma** in n8n's community nodes."
+            echo
+            echo "Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements) from this workflow run."
+          } >> /tmp/release-notes.md
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_NAME: "@gammatech/n8n-nodes-gamma"
