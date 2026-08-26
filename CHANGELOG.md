@@ -5,7 +5,14 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-08-25
+
+Theme and Folder become searchable pickers, two more values the API rejects are
+corrected, and the undocumented `/me` endpoint is settled.
+
+**Backward compatible.** Theme and Folder changed from string fields to resource
+locators, but n8n passes non-locator values through unchanged, so workflows
+saved before this release keep sending their stored IDs. Covered by tests.
 
 ### Added
 
