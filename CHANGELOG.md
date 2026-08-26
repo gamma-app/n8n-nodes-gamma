@@ -5,7 +5,15 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2026-08-26
+
+Four new resources and a structural refactor. The node now covers most of the
+Gamma API rather than generation alone: standalone images, comment threads,
+engagement analytics, and multi-page files published as Gamma sites.
+
+Backward compatible — everything here is additive. The one structural change,
+splitting the node into per-resource modules, leaves the built node description
+byte-identical.
 
 ### Changed
 
