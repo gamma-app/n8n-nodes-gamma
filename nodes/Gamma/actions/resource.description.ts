@@ -12,6 +12,16 @@ export const resourceDescription: INodeProperties[] = [
 		noDataExpression: true,
 		options: [
 			{
+				name: 'Analytics',
+				value: 'analytics',
+				description: 'Read engagement metrics for a Gamma',
+			},
+			{
+				name: 'Comment',
+				value: 'comment',
+				description: 'Read comment threads on a Gamma',
+			},
+			{
 				name: 'Export',
 				value: 'export',
 				description: 'Check the status of an export started on a Gamma',

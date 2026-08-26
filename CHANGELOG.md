@@ -36,6 +36,25 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   makes Gamma skip a curated style and any theme, which it reports back as a
   warning.
 
+- **Comment resource** — read comment threads on a Gamma, with cursor paging,
+  `includeArchived`, and **`updatedSince`**. That last one is what makes the
+  endpoint worth having in n8n: a scheduled workflow can poll for what changed
+  rather than re-reading every thread.
+
+- **Analytics resource** — all four endpoints: document totals, per-card
+  engagement, a paginated viewer list, and one viewer's per-card detail.
+
+  Permissions shape the answer rather than merely gating it: every response
+  carries a `scope` of `all` or `self`, so an API key with only `edit`
+  permission gets its own row back rather than the workspace's. The operation
+  and parameter descriptions say so, because otherwise a thin response reads as
+  a bug.
+
+- **`Simplify` on Get Document analytics and Get Many comments.** Neither
+  response exceeds the guideline's 10-field threshold, but both carry one field
+  that dominates the payload — a 30-entry `dailyViews` array, and `targetHtml`
+  plus nested `replies`. Simplify drops those, collapsing replies to a count.
+
 - `test/structure.test.js` guards the risk the split introduces: that a
   mis-ordered import scatters one resource's parameters through another's. It
   asserts each resource occupies one contiguous run, every resource in the
