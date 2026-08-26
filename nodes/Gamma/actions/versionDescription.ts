@@ -2,6 +2,7 @@ import type { INodeProperties } from 'n8n-workflow';
 
 import { resourceDescription } from './resource.description';
 import { generationDescription } from './generation';
+import { imageDescription } from './image';
 import { themeDescription } from './theme';
 import { folderDescription } from './folder';
 import { userDescription } from './user';
@@ -18,6 +19,7 @@ import { exportDescription } from './export';
 export const properties: INodeProperties[] = [
 	...resourceDescription,
 	...generationDescription,
+	...imageDescription,
 	...themeDescription,
 	...folderDescription,
 	...userDescription,

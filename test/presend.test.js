@@ -31,6 +31,11 @@ const VALUES = {
 	cardDimensionsPresentation: '16x9', cardDimensionsDocument: 'a4',
 	cardDimensionsSocial: '1x1', cardDimensionsWebpage: 'fluid',
 	title: 'Q3 Results Overview',
+	// Image resource
+	imagePrompt: 'A cyclist on a coastal road at sunrise',
+	imageType: 'photo', sizePreset: 'slide', imageThemeId: 'theme_img',
+	imageGenerationId: 'imggen_abc', savedMediaId: 'media_abc',
+	referenceImages: { image: [{ url: 'https://example.com/ref.png', role: 'subject' }] },
 };
 
 
@@ -99,8 +104,17 @@ describe('preSend hooks', () => {
 				['amount', 'audience', 'language', 'tone']);
 		});
 		it('imageOptions keeps all three writers', () => {
+			// The Generation resource's image settings. Distinct from the Image
+			// resource's own collection, which is `imageAdditionalFields`.
 			assert.deepStrictEqual(Object.keys(body.imageOptions).sort(), ['model', 'source', 'style']);
 			assert.strictEqual(body.imageOptions.model, 'flux-1-pro');
+		});
+
+		it('the Image resource writes its own top-level fields', () => {
+			assert.strictEqual(body.type, 'photo');
+			assert.strictEqual(body.sizePreset, 'slide');
+			assert.deepStrictEqual(body.referenceImages,
+				[{ url: 'https://example.com/ref.png', role: 'subject' }]);
 		});
 		it('cardOptions keeps both writers', () => {
 			assert.deepStrictEqual(Object.keys(body.cardOptions).sort(), ['dimensions', 'headerFooter']);
@@ -128,8 +142,12 @@ describe('preSend hooks', () => {
 			assert.strictEqual(body.title, 'Q3 Results Overview');
 			assert.strictEqual(body.additionalInstructions, 'be concise');
 			assert.strictEqual(body.exportAs, 'pdf');
-			// themeId is written by two mutually-exclusive hooks (generation vs template).
-			assert.ok(['theme_abc', 'theme_tpl'].includes(body.themeId));
+			// themeId is written by three mutually-exclusive hooks: the Generation
+			// additional option, the template override, and the Image resource.
+			// Composing every hook at once lets the last one win, so only assert it
+			// came from one of them.
+			assert.ok(['theme_abc', 'theme_tpl', 'theme_img'].includes(body.themeId),
+				`themeId was ${body.themeId}`);
 		});
 		it('maps search to the query string', () => {
 			assert.strictEqual(qs.query, 'marketing');

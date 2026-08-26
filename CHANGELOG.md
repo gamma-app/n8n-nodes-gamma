@@ -25,6 +25,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Image resource** — generate a standalone on-brand image from a prompt,
+  without creating a Gamma. **Create**, **Get Status** and **Archive Media**,
+  covering `POST /images`, `GET /images/{id}` and the media-archive endpoint.
+
+  Options match the API exactly: four image types, five size presets, an
+  optional Theme (reusing the same picker as the Generation resource), and
+  reference images as repeatable URL + role rows. The reference-image
+  description states the thing that surprises people — supplying references
+  makes Gamma skip a curated style and any theme, which it reports back as a
+  warning.
+
 - `test/structure.test.js` guards the risk the split introduces: that a
   mis-ordered import scatters one resource's parameters through another's. It
   asserts each resource occupies one contiguous run, every resource in the

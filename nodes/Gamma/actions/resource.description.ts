@@ -32,6 +32,11 @@ export const resourceDescription: INodeProperties[] = [
 				description: 'Create and manage AI-generated presentations, documents, and social posts',
 			},
 			{
+				name: 'Image',
+				value: 'image',
+				description: 'Generate a standalone on-brand image',
+			},
+			{
 				name: 'Theme',
 				value: 'theme',
 				description: 'Browse available themes (read-only - use to get theme IDs)',
