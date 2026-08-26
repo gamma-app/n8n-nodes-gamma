@@ -23,7 +23,7 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | A1 image source enum | done |
 | A2 folder single-value + clear error | done |
 | A3 credential test → `GET /v1.0/themes` | done |
-| A4 `User` resource still targets `/me` | **open** — needs one curl with a real key |
+| A4 `User` resource targets undocumented `/me` | resolved — confirmed live, kept with a caveat |
 | A5 dimensions per format | done |
 | A6 warnings | withdrawn — was never broken |
 | A7 `exportAs` + `png` | done |
@@ -38,7 +38,13 @@ working tree. Verified: `npm run lint` clean (0 errors), `npm test` green
 | Phase 6 enum sync + `--check` + CI | done |
 | Phase 6 delete `COMPLETE_FIELDS_LIST.md` | **open** — deletion is the user's call |
 | Gulp 5 binary-encoding regression | found during verification, fixed |
-| Phase 3 coverage, Phase 4 verification items | not started |
+| A13 list `limit` capped at 200 when the API allows 50 | fixed |
+| D1 OAuth2 credential | **removed** — blocked on Gamma's redirect allow-list |
+| D2 Resource Locators for Theme and Folder | done |
+| D3 `Simplify` parameter | **not applicable yet** — see §5 |
+| Action naming (drop articles) | done |
+| Error mapping | not started |
+| Phase 3 coverage | not started |
 
 Two things worth knowing about the implementation:
 
@@ -78,7 +84,7 @@ that can't lie.
 | A1 | `imageOptions.source` offers `unsplash`, which is **not** in the API enum | Request rejected / silently wrong | 1 |
 | A2 | `folderIds` invites a comma-separated list; API accepts **at most 1** | Request rejected | 1 |
 | A3 | Credential test hits undocumented `GET /v1.0/me` | "Test connection" may fail on a *valid* key | 1 |
-| A4 | `User → Get user information` targets the same undocumented endpoint | Operation may be entirely non-functional | 1 |
+| A4 | `User → Get user information` targets the same undocumented endpoint | Works, but unpublished — see §3 | 1 |
 | A5 | Card dimensions not constrained by `format` | Silently ignored + a warning nobody sees | 1 |
 | ~~A6~~ | ~~Response `warnings` discarded~~ — **false alarm**, see §1.1 | none | — |
 | A7 | `exportAs` missing `png` | Capability silently absent | 1 |
@@ -195,7 +201,29 @@ verifiable.
   Rename to **Folder** (singular), take one value, and drop the
   `e.g. fold_abc123,fold_xyz789` placeholder that teaches the invalid shape.
   Becomes a Resource Locator in Phase 4.
-- **A3 / A4 `/me`.** No `/me` endpoint appears anywhere in the production docs,
+- **A3 / A4 `/me` — resolved 2026-08-25.** A live call with a real key
+  (`npm run test:live`) returns **200** with a genuinely useful body:
+  `{ email, displayName, profileImageUrl, workspaceName, maxGenerateCards,
+  availableImageModels }`. The endpoint is real, useful, and unpublished.
+
+  The `User` resource **stays**. Its failure mode is contained: if Gamma retires
+  `/me`, one read-only operation breaks rather than the node. For that same
+  reason nothing else should depend on it — deriving the image-model list or the
+  `numCards` cap from `/me` would put the Create operation's UI at the mercy of
+  an endpoint nobody has committed to keeping.
+
+  The credential test moving to `GET /v1.0/themes` was correct regardless: it is
+  documented, cheap, and the docs name it as the way to validate a key.
+
+  **Worth raising internally rather than fixing in code:** `maxGenerateCards` and
+  `availableImageModels` are exactly the plan-dependent facts the node currently
+  hardcodes — the `numCards` ceiling and which of the 40 image models a given
+  workspace can actually use. If `/me` were documented, both could become
+  dynamic, and that would be the single biggest accuracy win available.
+
+  The original reasoning, written before the endpoint was confirmed:
+
+- **A3 / A4 `/me` (original analysis).** No `/me` endpoint appears anywhere in the production docs,
   and asking the docs directly confirms it: validation should be "call a metadata
   endpoint like themes or folders". Auth runs before routing on this API, so an
   unauthenticated probe returns 401 for every path and **cannot** prove whether
@@ -287,18 +315,89 @@ Resource layout, once expanded: `Generation`, `Gamma`, `Image`, `Export`,
 These are not polish — the first three are checked by human review and currently
 fail.
 
-- **D1 OAuth credential.** The UX guidelines say "Always include the OAuth
-  credential if available." Gamma documents an OAuth 2.0 authorization-code flow
-  (`https://auth.gamma.app/oauth/token`, dynamic client registration at
-  `/oauth/register`). We ship API key only. Add `GammaOAuth2Api` alongside, and
-  let the node accept either.
-- **D2 Resource Locators.** `themeId` and the folder are free-text IDs today; the
-  guidelines want a Resource Locator defaulting to **From list**. `GET /themes`
-  and `GET /folders` exist precisely for this, so add `loadOptions` /
-  `listSearch` methods. This is the single most visible UX gap — users currently
-  have to go find an ID in the app and paste it.
-- **D3 `Simplify`.** Analytics and comments responses exceed 10 fields, so they
-  need the standard `Simplify` boolean with the exact prescribed description.
+- **D1 OAuth credential — built, then removed. Blocked on Gamma.**
+
+  The UX guidelines say to offer OAuth wherever the service supports it, and
+  Gamma documents a full OAuth 2.0 authorization-code flow. A `GammaOAuth2Api`
+  credential was implemented and then **taken back out**, because no n8n user
+  can currently create one:
+
+  ```
+  POST https://auth.gamma.app/oauth/register
+  {"message":"redirect_uri not allowed: http://localhost:5678/rest/oauth2-credential/callback",
+   "error":"Bad Request","statusCode":400}
+  ```
+
+  Gamma's dynamic client registration only accepts redirect URIs on its
+  allow-list (`oauth_dcr_allowed_redirect_urls`) — the same list the MCP partner
+  onboarding process manages. n8n's redirect URL is **per-instance**
+  (`<instance-url>/rest/oauth2-credential/callback`), so self-hosted users each
+  have their own and an allow-list of exact URLs cannot cover n8n generically.
+
+  Shipping an authentication option that dead-ends at a 400 is worse than not
+  offering it, so the node is API-key-only again.
+
+  **What unblocks it**, roughly by practicality:
+
+  1. Allow-list a pattern covering n8n Cloud tenants (something like
+     `https://*.app.n8n.cloud/rest/oauth2-credential/callback`). Unblocks the
+     majority; leaves self-hosted out.
+  2. Treat n8n as a partner and allow-list specific customer instances on
+     request. Works, scales poorly.
+  3. Relax DCR for redirect URIs matching n8n's known path suffix.
+
+  **Restoring the work.** The implementation is not lost — it is complete and
+  reviewed, just unusable. It lives in two commits on this branch's history:
+
+  ```
+  git show ce05736 -- credentials/GammaOAuth2Api.credentials.ts
+  git show 31ab751 -- credentials/GammaOAuth2Api.credentials.ts
+  ```
+
+  Two design decisions worth keeping when it comes back:
+
+  - It registers as a **confidential client** (`client_secret_post`), because
+    n8n's generic OAuth2 credential does not implement PKCE — the PKCE machinery
+    in `n8n-workflow` belongs to n8n's own internal trigger auth, not to
+    `oAuth2Api`. Gamma supports both client types, and confidential sidesteps it.
+  - It hardcodes `authQueryParameters: 'resource=https://public-api.gamma.app'`.
+    Gamma's docs call omitting that RFC 8707 resource indicator "the most common
+    integration mistake": the flow succeeds and then every API call fails on a
+    mis-audienced token.
+
+  **A second unknown sits behind the first:** even once registration works, if
+  Gamma requires PKCE for confidential clients too, the generic n8n credential
+  will not suffice and this needs redesigning. That is untestable until the
+  allow-list moves.
+
+- **D2 Resource Locators — done.** Theme (in Additional Options), Folder, and
+  the template Theme override are now `resourceLocator` parameters defaulting to
+  **From List**, backed by `listSearch` methods over `GET /themes` and
+  `GET /folders`. Each keeps a **By ID** mode for expressions and pasted IDs.
+
+  The lookup honours the node's `Authentication` setting, so the pickers work
+  under either credential. It requests `limit: 50` (the API maximum) and maps
+  `nextCursor` to n8n's `paginationToken`, converting the API's terminal `null`
+  to `undefined` — otherwise the picker pages forever.
+- **D3 `Simplify` — not applicable to the current operations.** The guideline
+  applies to endpoints returning more than 10 fields. Checked against the actual
+  response schemas: generation status returns 8 (`generationId`, `status`,
+  `gammaId`, `gammaUrl`, `exportUrl`, `credits`, `title`, `error`), `/me` returns
+  6, and folder items return 2. Adding `Simplify` now would be box-ticking on
+  responses that are already small. It becomes genuinely necessary with the
+  Phase 3 analytics endpoints, which return 30-day daily breakdowns and per-card
+  arrays — add it with them.
+
+- **Deferred design question: list output shape.** `GET /themes` and
+  `GET /folders` return `{ data, hasMore, nextCursor }`, and the node passes that
+  wrapper straight through, so a list operation emits one item containing an
+  array rather than one item per result. n8n convention is the latter, via
+  `postReceive: [{ type: 'rootProperty', properties: { property: 'data' } }]` —
+  but that discards `nextCursor`, breaking manual pagination for anyone using the
+  `after` parameter. The clean answer is auto-pagination via
+  `routing.operations.pagination` plus `rootProperty`, which makes `after`
+  redundant. That is a real behaviour change with a migration cost, so it is
+  deliberately left for Phase 3 rather than slipped in here.
 - **CRUD naming.** Rename actions to drop articles: "Create a generation" →
   "Create generation". Add `Get Many` naming where lists are returned.
 - **Errors.** Map documented statuses onto actionable messages: 402 → "Workspace
@@ -355,7 +454,12 @@ These change the shape of the work and aren't mine to make:
    items rather than hand-authoring them.
 4. **OAuth priority.** Needed for verification, but it's the largest single item
    in Phase 4. Confirm whether verification is still the goal before investing.
-5. **`/me`.** One curl with a real key settles A3/A4.
+5. ~~**`/me`.** One curl with a real key settles A3/A4.~~ **Resolved
+   2026-08-25:** returns 200 with `maxGenerateCards` and
+   `availableImageModels`. The `User` resource stays; nothing else should depend
+   on it while it is undocumented. Getting it documented would let the node
+   derive plan limits and the usable model list dynamically — worth raising
+   internally.
 
 ---
 

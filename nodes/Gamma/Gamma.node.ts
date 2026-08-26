@@ -1,5 +1,7 @@
 import {
 	IDataObject,
+	ILoadOptionsFunctions,
+	INodeListSearchResult,
 	INodeType,
 	INodeTypeDescription,
 	NodeConnectionTypes,
@@ -8,7 +10,70 @@ import {
 
 import { CARD_DIMENSION_OPTIONS, IMAGE_MODEL_OPTIONS, LANGUAGE_OPTIONS } from './apiEnums';
 
+const BASE_URL = 'https://public-api.gamma.app';
+
+/**
+ * Backs the Theme and Folder pickers. Both endpoints share a shape:
+ * `{ data: [{ id, name, ... }], hasMore, nextCursor }`, with `query` for search
+ * and `after` for the cursor. Gamma caps `limit` at 50.
+ */
+async function searchWorkspaceResource(
+	this: ILoadOptionsFunctions,
+	url: string,
+	filter?: string,
+	paginationToken?: string,
+	describe?: (item: IDataObject) => string | undefined,
+): Promise<INodeListSearchResult> {
+	const qs: IDataObject = { limit: 50 };
+	if (filter) qs.query = filter;
+	if (paginationToken) qs.after = paginationToken;
+
+	const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'gammaApi', {
+		method: 'GET',
+		baseURL: BASE_URL,
+		url,
+		qs,
+		json: true,
+	})) as { data?: IDataObject[]; nextCursor?: string | null };
+
+	return {
+		results: (response.data ?? []).map((item) => ({
+			name: (item.name as string) ?? (item.id as string),
+			value: item.id as string,
+			description: describe?.(item),
+		})),
+		// n8n stops paging when this is undefined; the API sends null at the end.
+		paginationToken: response.nextCursor ?? undefined,
+	};
+}
+
 export class Gamma implements INodeType {
+	methods = {
+		listSearch: {
+			async searchThemes(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+				paginationToken?: string,
+			): Promise<INodeListSearchResult> {
+				return await searchWorkspaceResource.call(
+					this,
+					'/v1.0/themes',
+					filter,
+					paginationToken,
+					(item) => (item.type === 'custom' ? 'Custom workspace theme' : 'Standard theme'),
+				);
+			},
+
+			async searchFolders(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+				paginationToken?: string,
+			): Promise<INodeListSearchResult> {
+				return await searchWorkspaceResource.call(this, '/v1.0/folders', filter, paginationToken);
+			},
+		},
+	};
+
 	description: INodeTypeDescription = {
 		displayName: 'Gamma',
 		name: 'gamma',
@@ -63,7 +128,7 @@ export class Gamma implements INodeType {
 					{
 						name: 'User',
 						value: 'user',
-						description: 'Get your account information',
+						description: 'Read your account and workspace limits',
 					},
 				],
 				default: 'generation',
@@ -86,7 +151,7 @@ export class Gamma implements INodeType {
 					{
 						name: 'Create',
 						value: 'create',
-						action: 'Create a generation',
+						action: 'Create generation',
 						description: 'Create a new presentation, document, social post, or webpage',
 						routing: {
 							request: {
@@ -606,15 +671,34 @@ export class Gamma implements INodeType {
 					{
 						displayName: 'Folder',
 						name: 'folderIds',
-						type: 'string',
-						default: '',
-						placeholder: 'e.g. fold_abc123',
-						description: 'Folder to place the generated Gamma in. The API accepts one folder. Use List Folders to find the ID.',
+						type: 'resourceLocator',
+						default: { mode: 'list', value: '' },
+						description: 'Folder to place the generated Gamma in. The API accepts a single folder.',
+						modes: [
+							{
+								displayName: 'From List',
+								name: 'list',
+								type: 'list',
+								typeOptions: {
+									searchListMethod: 'searchFolders',
+									searchable: true,
+									searchFilterRequired: false,
+								},
+							},
+							{
+								displayName: 'By ID',
+								name: 'id',
+								type: 'string',
+								hint: 'Paste the ID from the Gamma app or from a List operation',
+							},
+						],
 						routing: {
 							send: {
 								preSend: [
 									async function (this, requestOptions) {
-										const value = this.getNodeParameter('additionalOptions.folderIds') as string;
+										const value = this.getNodeParameter('additionalOptions.folderIds', '', {
+											extractValue: true,
+										}) as string;
 										if (value) {
 											requestOptions.body = requestOptions.body || {};
 											const ids = value.split(',').map((id: string) => id.trim()).filter((id: string) => id);
@@ -759,7 +843,7 @@ export class Gamma implements INodeType {
 							maxValue: 75,
 						},
 						default: 10,
-						description: 'Target number of cards to generate. Applies only when Card Split is Auto. Plan limits apply: up to 60 cards on Pro, Teams and Business, up to 75 on Ultra.',
+						description: 'Target number of cards to generate. Applies only when Card Split is Auto. Your plan caps this (60 on Pro, Teams and Business; 75 on Ultra) -- the User: Get User Information operation returns your exact limit as maxGenerateCards.',
 						displayOptions: {
 							hide: {
 								'/additionalOptions.cardSplit': ['inputTextBreaks'],
@@ -816,17 +900,36 @@ export class Gamma implements INodeType {
 						},
 					},
 					{
-						displayName: 'Theme ID',
+						displayName: 'Theme',
 						name: 'themeId',
-						type: 'string',
-						default: '',
-						placeholder: 'e.g. abc123def456 (leave empty for workspace default)',
-						description: 'Theme ID from List Themes operation. Leave empty to use workspace default theme.',
+						type: 'resourceLocator',
+						default: { mode: 'list', value: '' },
+						description: 'Theme to apply. Leave empty to use the workspace default.',
+						modes: [
+							{
+								displayName: 'From List',
+								name: 'list',
+								type: 'list',
+								typeOptions: {
+									searchListMethod: 'searchThemes',
+									searchable: true,
+									searchFilterRequired: false,
+								},
+							},
+							{
+								displayName: 'By ID',
+								name: 'id',
+								type: 'string',
+								hint: 'Paste the ID from the Gamma app or from a List operation',
+							},
+						],
 						routing: {
 							send: {
 								preSend: [
 									async function (this, requestOptions) {
-										const value = this.getNodeParameter('additionalOptions.themeId') as string;
+										const value = this.getNodeParameter('additionalOptions.themeId', '', {
+											extractValue: true,
+										}) as string;
 										if (value) {
 											requestOptions.body = requestOptions.body || {};
 											(requestOptions.body as IDataObject).themeId = value;
@@ -950,12 +1053,29 @@ export class Gamma implements INodeType {
 
 			// Theme ID for createFromTemplate
 			{
-				displayName: 'Theme ID',
+				displayName: 'Theme',
 				name: 'templateThemeId',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. abc123def456 (leave empty for template theme)',
-				description: 'Theme ID to apply (optional). Leave empty to use template theme.',
+				type: 'resourceLocator',
+				default: { mode: 'list', value: '' },
+				description: 'Optional theme override. Leave empty to keep the template theme.',
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						typeOptions: {
+							searchListMethod: 'searchThemes',
+							searchable: true,
+							searchFilterRequired: false,
+						},
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+						hint: 'Paste the ID from the Gamma app or from a List operation',
+					},
+				],
 				displayOptions: {
 					show: {
 						resource: ['generation'],
@@ -966,7 +1086,9 @@ export class Gamma implements INodeType {
 					send: {
 						preSend: [
 							async function (this, requestOptions) {
-								const value = this.getNodeParameter('templateThemeId') as string;
+								const value = this.getNodeParameter('templateThemeId', '', {
+									extractValue: true,
+								}) as string;
 								if (value) {
 									requestOptions.body = requestOptions.body || {};
 									(requestOptions.body as IDataObject).themeId = value;
@@ -1046,7 +1168,7 @@ export class Gamma implements INodeType {
 						default: 50,
 						typeOptions: {
 							minValue: 1,
-							maxValue: 200,
+							maxValue: 50,
 						},
 						description: 'Max number of results to return',
 						routing: {
@@ -1131,7 +1253,7 @@ export class Gamma implements INodeType {
 						default: 50,
 						typeOptions: {
 							minValue: 1,
-							maxValue: 200,
+							maxValue: 50,
 						},
 						description: 'Max number of results to return',
 						routing: {
@@ -1185,7 +1307,7 @@ export class Gamma implements INodeType {
 						name: 'Get Me',
 						value: 'getMe',
 						action: 'Get user information',
-						description: 'Get authenticated user and workspace information',
+						description: 'Retrieve the account and workspace behind the API key, including your plan\'s maxGenerateCards limit and availableImageModels',
 						routing: {
 							request: {
 								method: 'GET',
