@@ -1,6 +1,6 @@
 {
   "name": "@gammatech/n8n-nodes-gamma",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "n8n community node for Gamma - Create AI-powered presentations, documents, and websites",
   "keywords": [
     "n8n-community-node-package",
@@ -14,7 +14,7 @@
   "homepage": "https://gamma.app",
   "author": {
     "name": "Gamma",
-    "email": "support@gamma.app",
+    "email": "adam.harris@gamma.app",
     "url": "https://gamma.app"
   },
   "repository": {

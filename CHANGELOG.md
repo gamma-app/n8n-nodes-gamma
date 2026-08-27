@@ -5,6 +5,14 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-08-27
+
+### Changed
+
+- Package author email is now `adam.harris@gamma.app` rather than the shared
+  `support@gamma.app` inbox, so npm and n8n point at a maintainer who can act on
+  the mail. Metadata only — no code or behaviour changes.
+
 ## [0.5.0] - 2026-08-26
 
 Four new resources and a structural refactor. The node now covers most of the
