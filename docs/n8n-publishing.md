@@ -208,11 +208,20 @@ deliberately, and both will look like neglect to anyone who doesn't know why:
 
 | Package | Held at | Why |
 | --- | --- | --- |
-| `typescript` | `^5.9.3` | TS 7 (the native rewrite) compiles this package fine, but **the n8n linter cannot run against it**: `typescript-eslint` 8 pulls `ts-api-utils`, which crashes on TS 7's changed compiler API (`TypeError: Cannot read properties of undefined (reading 'Intrinsic')`). Since lint gates `prepublishOnly` and is a verification requirement, TS 7 is a blocker until `@n8n/node-cli` ships a `typescript-eslint` that supports it. The caret keeps us inside 5.x rather than silently jumping. |
+| `typescript` | `^5.9.3` | TS 7 (the native rewrite) compiles this package fine, but **the n8n linter cannot run against it**: `typescript-eslint` 8 pulls `ts-api-utils`, which crashes on TS 7's changed compiler API (`TypeError: Cannot read properties of undefined (reading 'Intrinsic')`). Since lint gates `prepublishOnly` and is a verification requirement, TS 7 is a blocker until `@n8n/node-cli` ships a `typescript-eslint` that supports it. The caret keeps us inside 5.x rather than silently jumping. **Re-verified 2026-09-10** against `@n8n/node-cli` 0.47.2: still `typescript-eslint` 8.68.0 / `@typescript-eslint/typescript-estree` 8.70.0, which declares `typescript: >=4.8.4 <6.1.0`, and `npm run lint` still dies with the same `Intrinsic` TypeError under TS 7.0.2. `tsc` itself succeeds — only lint breaks. |
 | `n8n-workflow` | `*` (peer) | The registry's `latest` tag (2.16.0) **lags** its `stable` tag (2.35.3), so `npm outdated` reports a *downgrade* as an update. n8n 2.35.7 itself depends on `n8n-workflow@2.35.3`. Leave the peer range as `*`; the host n8n instance supplies the real one at runtime. Don't pin it, and don't "fix" this row. |
+
+Everything else is expected to be current. `npm audit` findings all sit inside
+`@n8n/node-cli`'s own tree (its `langchain` and `eslint` deps); `npm audit fix`
+is a no-op on them and `--force` would break the toolchain. Because the package
+declares no runtime `dependencies` and ships only `dist`, `examples` and
+`LICENSE`, none of them reach an installed node.
 
 Before bumping anything else, check that `@n8n/node-cli` still lints and that
 `npm run build` still produces every path in the `n8n` block.
+
+To re-test the TypeScript hold: `npm i -D typescript@7 && npm run lint`, then
+restore with `git checkout package.json package-lock.json && rm -rf node_modules && npm ci`.
 
 ### 1.10 Docs
 
