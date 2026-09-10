@@ -4,6 +4,8 @@ import type {
 	INodeListSearchResult,
 } from 'n8n-workflow';
 
+import { USER_AGENT } from '../userAgent';
+
 const BASE_URL = 'https://public-api.gamma.app';
 
 /**
@@ -28,6 +30,8 @@ async function searchWorkspaceResource(
 		url,
 		qs,
 		json: true,
+		// Picker requests bypass the node's requestDefaults, so stamp the UA here too.
+		headers: { 'User-Agent': USER_AGENT },
 	})) as { data?: IDataObject[]; nextCursor?: string | null };
 
 	return {

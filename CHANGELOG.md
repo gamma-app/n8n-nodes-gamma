@@ -5,6 +5,36 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-09-10
+
+### Added
+
+- **The node now identifies itself** in a `User-Agent` header of
+  `n8n-nodes-gamma/<version>`, set on `requestDefaults` and on the Theme/Folder
+  picker requests (which build their own request and so don't inherit
+  `requestDefaults`).
+
+  Before this, the node sent no `User-Agent` and inherited n8n's platform
+  default. That default is the bare string `n8n`, or — on instances that set
+  `enforceGlobalUserAgent` — `Mozilla/5.0 (compatible; n8n/<version>;
+  +https://n8n.io/)`. Gamma's public-API analytics bucket traffic on the product
+  token before the `/`, so the first form lumped this node in with every
+  hand-rolled HTTP Request node calling Gamma, and the second didn't read as n8n
+  at all. Neither could answer "how much Gamma traffic comes from the official
+  node".
+
+  n8n's `applyDefaultOutboundUserAgent` returns early when a request already
+  carries the header, so ours is preserved rather than overwritten. The `n8n-`
+  prefix keeps the node inside an `n8n%`-style family match while still giving it
+  its own bucket.
+
+  No behaviour change for workflows — this is one extra request header. Gamma
+  gains per-version attribution, which also makes it possible to see which node
+  versions are hitting deprecated parameters.
+
+  The version in the header is a constant in `nodes/Gamma/userAgent.ts`;
+  `test/user-agent.test.js` fails if it drifts from `package.json`.
+
 ## [0.5.2] - 2026-09-10
 
 ### Removed

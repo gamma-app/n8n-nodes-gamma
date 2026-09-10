@@ -3,6 +3,7 @@ import type { INodeType, INodeTypeDescription } from 'n8n-workflow';
 
 import { properties } from './actions/versionDescription';
 import { listSearch } from './methods';
+import { USER_AGENT } from './userAgent';
 
 export class Gamma implements INodeType {
 	methods = { listSearch };
@@ -31,6 +32,7 @@ export class Gamma implements INodeType {
 			headers: {
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
+				'User-Agent': USER_AGENT,
 			},
 		},
 		properties,
