@@ -5,6 +5,27 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **`@n8n/node-cli` 0.44.5 -> 0.47.2** (dev toolchain only). Build, lint, tests
+  and the enum-drift check all pass on it, and `npm audit` drops from 16
+  findings (9 high) to 11 (1 high). `npm pack` output is byte-identical to
+  0.5.3 apart from this line in `package.json`, so nothing an installed node
+  runs has changed.
+
+- **`actions/checkout` and `actions/setup-node` v4 -> v7** in both workflows,
+  clearing the "Node.js 20 is deprecated" warning that every run was emitting.
+  v5's one breaking change is to `pull_request_target` checkout defaults; these
+  workflows use plain `pull_request`, so it does not apply.
+
+- `docs/n8n-publishing.md` §1.9 records that the `typescript` hold was
+  re-verified against the new `@n8n/node-cli`, and how to re-test it.
+
+`typescript` stays at `^5.9.3` and `n8n-workflow` stays an unpinned peer — both
+holds re-confirmed, see §1.9. `gulp` and `prettier` were already current.
+
 ## [0.5.3] - 2026-09-10
 
 ### Added
