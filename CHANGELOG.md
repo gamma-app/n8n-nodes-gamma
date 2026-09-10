@@ -5,6 +5,31 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-10
+
+### Removed
+
+- **Four retired Imagen models** dropped from the **AI Image Model** picker:
+  `imagen-3-flash`, `imagen-3-pro`, `imagen-4-pro` and `imagen-4-ultra`. Gamma
+  removed them upstream — they are gone from both sources `sync:enums`
+  cross-checks, the OpenAPI `ImageModel` enum and the image-model reference
+  table — so the API no longer accepts them.
+
+  Google's models are still covered by the Nano Banana / Gemini entries
+  (`gemini-3-pro-image`, `gemini-3.1-flash-image` and siblings), which were
+  already offered, so this narrows the list rather than the capability.
+
+  **If a saved workflow pins one of these four values**, it will now fail at the
+  API. n8n keeps a stored parameter after its option disappears from the
+  dropdown, so the old value is still sent rather than falling back to Auto —
+  re-pick a model on affected nodes. Workflows left on **Auto (Let Gamma
+  Choose)**, the default, are unaffected.
+
+  Caught by the daily `API enum drift` CI job rather than by a support ticket,
+  which is what it is there for. Generated change only: `apiEnums.ts` is the
+  output of `npm run sync:enums`, and no hand-written code references a model
+  value.
+
 ## [0.5.1] - 2026-08-27
 
 ### Changed
