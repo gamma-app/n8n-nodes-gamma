@@ -4,9 +4,7 @@ import type {
 	INodeListSearchResult,
 } from 'n8n-workflow';
 
-import { USER_AGENT } from '../userAgent';
-
-const BASE_URL = 'https://public-api.gamma.app';
+import { BASE_URL, USER_AGENT } from '../api';
 
 /**
  * Backs the Theme and Folder pickers. Both endpoints share a shape:

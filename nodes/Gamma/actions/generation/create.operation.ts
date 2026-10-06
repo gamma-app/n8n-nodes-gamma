@@ -1,7 +1,8 @@
-import type { IDataObject, INodeProperties } from 'n8n-workflow';
+import type { INodeProperties } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
 import { CARD_DIMENSION_OPTIONS, IMAGE_MODEL_OPTIONS, LANGUAGE_OPTIONS } from '../../apiEnums';
+import { sendIfSet, setPath } from '../sendIfSet';
 
 /**
  * Parameters for Generation: Create.
@@ -12,9 +13,6 @@ import { CARD_DIMENSION_OPTIONS, IMAGE_MODEL_OPTIONS, LANGUAGE_OPTIONS } from '.
  * the static check.
  */
 export const createDescription: INodeProperties[] = [
-	// ============================================
-	// CREATE GENERATION FIELDS (v1.0 only)
-	// ============================================
 	// Required: Input Text
 	{
 		displayName: 'Input Text',
@@ -152,20 +150,7 @@ export const createDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. Make the card headings humorous and catchy',
 				description: 'Additional instructions for generation (max 2000 characters)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.additionalInstructions') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									(requestOptions.body as IDataObject).additionalInstructions = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.additionalInstructions', 'body.additionalInstructions'),
 			},
 			{
 				displayName: 'AI Image Model',
@@ -182,21 +167,7 @@ export const createDescription: INodeProperties[] = [
 						imageSource: ['aiGenerated'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.imageModel') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.imageOptions = { ...(body.imageOptions as IDataObject), model: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.imageModel', 'body.imageOptions.model'),
 			},
 			{
 				displayName: 'Audience',
@@ -210,21 +181,7 @@ export const createDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. business executives',
 				description: 'Target audience description (max 500 characters)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.audience') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.textOptions = { ...(body.textOptions as IDataObject), audience: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.audience', 'body.textOptions.audience'),
 			},
 			{
 				displayName: 'Card Dimensions',
@@ -238,21 +195,7 @@ export const createDescription: INodeProperties[] = [
 						'/format': ['presentation'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.cardDimensionsPresentation') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.cardOptions = { ...(body.cardOptions as IDataObject), dimensions: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.cardDimensionsPresentation', 'body.cardOptions.dimensions'),
 			},
 			{
 				displayName: 'Card Dimensions',
@@ -266,21 +209,7 @@ export const createDescription: INodeProperties[] = [
 						'/format': ['document'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.cardDimensionsDocument') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.cardOptions = { ...(body.cardOptions as IDataObject), dimensions: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.cardDimensionsDocument', 'body.cardOptions.dimensions'),
 			},
 			{
 				displayName: 'Card Dimensions',
@@ -294,21 +223,7 @@ export const createDescription: INodeProperties[] = [
 						'/format': ['social'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.cardDimensionsSocial') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.cardOptions = { ...(body.cardOptions as IDataObject), dimensions: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.cardDimensionsSocial', 'body.cardOptions.dimensions'),
 			},
 			{
 				displayName: 'Card Dimensions',
@@ -322,21 +237,7 @@ export const createDescription: INodeProperties[] = [
 						'/format': ['webpage'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.cardDimensionsWebpage') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.cardOptions = { ...(body.cardOptions as IDataObject), dimensions: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.cardDimensionsWebpage', 'body.cardOptions.dimensions'),
 			},
 			{
 				displayName: 'Card Split',
@@ -388,11 +289,7 @@ export const createDescription: INodeProperties[] = [
 								const recipients = this.getNodeParameter('additionalOptions.emailRecipients') as string;
 								const access = this.getNodeParameter('additionalOptions.emailAccess') as string;
 								if (recipients && access) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									const sharingOptions = { ...(body.sharingOptions as IDataObject) };
-									sharingOptions.emailOptions = { ...(sharingOptions.emailOptions as IDataObject), access };
-									body.sharingOptions = sharingOptions;
+									setPath(requestOptions, 'body.sharingOptions.emailOptions.access', access);
 								}
 								return requestOptions;
 							},
@@ -413,17 +310,8 @@ export const createDescription: INodeProperties[] = [
 							async function (this, requestOptions) {
 								const value = this.getNodeParameter('additionalOptions.emailRecipients') as string;
 								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									const sharingOptions = { ...(body.sharingOptions as IDataObject) };
-									sharingOptions.emailOptions = {
-										...(sharingOptions.emailOptions as IDataObject),
-										recipients: value
-											.split(',')
-											.map((email: string) => email.trim())
-											.filter((email: string) => email),
-									};
-									body.sharingOptions = sharingOptions;
+									const recipients = value.split(',').map((email) => email.trim()).filter(Boolean);
+									setPath(requestOptions, 'body.sharingOptions.emailOptions.recipients', recipients);
 								}
 								return requestOptions;
 							},
@@ -437,21 +325,7 @@ export const createDescription: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description: 'Whether to allow search engines to index this content',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.enableSearchEngineIndexing') as boolean;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.sharingOptions = { ...(body.sharingOptions as IDataObject), enableSearchEngineIndexing: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.enableSearchEngineIndexing', 'body.sharingOptions.enableSearchEngineIndexing'),
 			},
 			{
 				displayName: 'Export As',
@@ -465,20 +339,7 @@ export const createDescription: INodeProperties[] = [
 				],
 				default: '',
 				description: 'Export format (optional) - provides download URL when generation completes',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.exportAs') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									(requestOptions.body as IDataObject).exportAs = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.exportAs', 'body.exportAs'),
 			},
 			{
 				displayName: 'External Access',
@@ -493,21 +354,7 @@ export const createDescription: INodeProperties[] = [
 				],
 				default: '',
 				description: 'Access level for external users (via link)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.externalAccess') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.sharingOptions = { ...(body.sharingOptions as IDataObject), externalAccess: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.externalAccess', 'body.sharingOptions.externalAccess'),
 			},
 			{
 				displayName: 'Folder',
@@ -541,8 +388,7 @@ export const createDescription: INodeProperties[] = [
 									extractValue: true,
 								}) as string;
 								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const ids = value.split(',').map((id: string) => id.trim()).filter((id: string) => id);
+									const ids = value.split(',').map((id) => id.trim()).filter(Boolean);
 									if (ids.length > 1) {
 										throw new NodeOperationError(
 											this.getNode(),
@@ -550,7 +396,7 @@ export const createDescription: INodeProperties[] = [
 											{ description: 'Gamma places a generation in at most one folder. Remove the extra IDs and keep one.' },
 										);
 									}
-									(requestOptions.body as IDataObject).folderIds = ids;
+									setPath(requestOptions, 'body.folderIds', ids);
 								}
 								return requestOptions;
 							},
@@ -571,11 +417,9 @@ export const createDescription: INodeProperties[] = [
 							async function (this, requestOptions) {
 								const value = this.getNodeParameter('additionalOptions.headerFooter') as string;
 								if (value) {
+									let parsed: unknown;
 									try {
-										const parsed = JSON.parse(value);
-										requestOptions.body = requestOptions.body || {};
-										const body = requestOptions.body as IDataObject;
-										body.cardOptions = { ...(body.cardOptions as IDataObject), headerFooter: parsed };
+										parsed = JSON.parse(value);
 									} catch {
 										throw new NodeOperationError(
 											this.getNode(),
@@ -583,6 +427,7 @@ export const createDescription: INodeProperties[] = [
 											{ description: 'Enter a JSON object, for example {"topRight": {"type": "image", "source": "themeLogo"}}' },
 										);
 									}
+									setPath(requestOptions, 'body.cardOptions.headerFooter', parsed);
 								}
 								return requestOptions;
 							},
@@ -613,21 +458,7 @@ export const createDescription: INodeProperties[] = [
 				],
 				default: 'aiGenerated',
 				description: 'Where to source images from',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.imageSource') as string;
-								if (value && value !== 'aiGenerated') {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.imageOptions = { ...(body.imageOptions as IDataObject), source: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.imageSource', 'body.imageOptions.source', { skip: 'aiGenerated' }),
 			},
 			{
 				displayName: 'Image Style',
@@ -644,21 +475,7 @@ export const createDescription: INodeProperties[] = [
 						imageSource: ['aiGenerated'],
 					},
 				},
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.imageStyle') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.imageOptions = { ...(body.imageOptions as IDataObject), style: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.imageStyle', 'body.imageOptions.style'),
 			},
 			{
 				displayName: 'Language',
@@ -672,21 +489,7 @@ export const createDescription: INodeProperties[] = [
 				options: LANGUAGE_OPTIONS,
 				default: 'en',
 				description: 'Language for the generated content',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.language') as string;
-								if (value && value !== 'en') {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.textOptions = { ...(body.textOptions as IDataObject), language: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.language', 'body.textOptions.language', { skip: 'en' }),
 			},
 			{
 				displayName: 'Number of Cards',
@@ -718,10 +521,7 @@ export const createDescription: INodeProperties[] = [
 									return requestOptions;
 								}
 								const value = this.getNodeParameter('additionalOptions.numCards') as number;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									(requestOptions.body as IDataObject).numCards = value;
-								}
+								if (value) setPath(requestOptions, 'body.numCards', value);
 								return requestOptions;
 							},
 						],
@@ -745,21 +545,7 @@ export const createDescription: INodeProperties[] = [
 				],
 				default: 'medium',
 				description: 'Amount of text to generate per card',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.textAmount') as string;
-								if (value && value !== 'medium') {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.textOptions = { ...(body.textOptions as IDataObject), amount: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.textAmount', 'body.textOptions.amount', { skip: 'medium' }),
 			},
 			{
 				displayName: 'Theme',
@@ -785,22 +571,7 @@ export const createDescription: INodeProperties[] = [
 						hint: 'Paste the ID from the Gamma app or from a List operation',
 					},
 				],
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.themeId', '', {
-									extractValue: true,
-								}) as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									(requestOptions.body as IDataObject).themeId = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.themeId', 'body.themeId', { extractValue: true }),
 			},
 			{
 				displayName: 'Title',
@@ -810,20 +581,7 @@ export const createDescription: INodeProperties[] = [
 				placeholder: 'e.g. Q3 Results Overview',
 				description:
 					'Title for the generated Gamma. Leave empty to have one generated from the content.',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.title') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									(requestOptions.body as IDataObject).title = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.title', 'body.title'),
 			},
 			{
 				displayName: 'Tone',
@@ -837,21 +595,7 @@ export const createDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. professional and friendly',
 				description: 'Tone description for generated content (max 500 characters)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.tone') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.textOptions = { ...(body.textOptions as IDataObject), tone: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.tone', 'body.textOptions.tone'),
 			},
 			{
 				displayName: 'Workspace Access',
@@ -867,21 +611,7 @@ export const createDescription: INodeProperties[] = [
 				],
 				default: '',
 				description: 'Access level for workspace members',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('additionalOptions.workspaceAccess') as string;
-								if (value) {
-									requestOptions.body = requestOptions.body || {};
-									const body = requestOptions.body as IDataObject;
-									body.sharingOptions = { ...(body.sharingOptions as IDataObject), workspaceAccess: value };
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('additionalOptions.workspaceAccess', 'body.sharingOptions.workspaceAccess'),
 			},
 		],
 	},

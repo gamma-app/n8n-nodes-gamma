@@ -1,10 +1,9 @@
-import type { IDataObject, INodeProperties } from 'n8n-workflow';
+import type { INodeProperties } from 'n8n-workflow';
+
+import { sendIfSet } from '../sendIfSet';
 
 /** Operations and parameters for the Theme resource. */
 export const themeDescription: INodeProperties[] = [
-	// ============================================
-	// THEME OPERATIONS
-	// ============================================
 	{
 		displayName: 'Operation',
 		name: 'operation',
@@ -69,20 +68,7 @@ export const themeDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. modern',
 				description: 'Filter themes by name (case-insensitive)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('themeAdditionalFields.query') as string;
-								if (value) {
-									requestOptions.qs = requestOptions.qs || {};
-									(requestOptions.qs as IDataObject).query = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('themeAdditionalFields.query', 'qs.query'),
 			},
 		],
 	},

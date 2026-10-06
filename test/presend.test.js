@@ -22,8 +22,8 @@ const TOP_LEVEL = new Set(['resource', 'operation', 'templateThemeId', 'generati
 // Canned values per parameter name.
 const VALUES = {
 	themeId: 'theme_abc', additionalInstructions: 'be concise', textAmount: 'detailed',
-	tone: 'professional', audience: 'executives', language: 'fr', imageSource: 'unsplash',
-	aiImageModel: 'flux-1-pro', imageStyle: 'photorealistic', cardDimensions: '16:9',
+	tone: 'professional', audience: 'executives', language: 'fr', imageSource: 'pexels',
+	imageStyle: 'photorealistic',
 	folderIds: 'fold_a', workspaceAccess: 'view', externalAccess: 'comment',
 	enableSearchEngineIndexing: true, headerFooter: '{"topRight":{"type":"cardNumber"}}',
 	emailRecipients: 'a@example.com, b@example.com', emailAccess: 'view',
@@ -193,10 +193,79 @@ describe('preSend hooks', () => {
 		});
 	});
 
-	it('skips language=en, which is the API default', async () => {
-		const hook = hooks.find((h) => h.name === 'language');
-		const ro = { body: {} };
-		await hook.fn.call(context({ getNodeParameter: () => 'en' }), ro);
-		assert.deepStrictEqual(ro.body, {});
+	// What each hook writes when run alone on an empty request. Pins the exact
+	// path and value, which the composition tests above only check by key.
+	const WRITES = {
+		'additionalOptions.additionalInstructions': { body: { additionalInstructions: 'be concise' } },
+		'additionalOptions.imageModel': { body: { imageOptions: { model: 'flux-1-pro' } } },
+		'additionalOptions.audience': { body: { textOptions: { audience: 'executives' } } },
+		'additionalOptions.cardDimensionsPresentation': { body: { cardOptions: { dimensions: '16x9' } } },
+		'additionalOptions.cardDimensionsDocument': { body: { cardOptions: { dimensions: 'a4' } } },
+		'additionalOptions.cardDimensionsSocial': { body: { cardOptions: { dimensions: '1x1' } } },
+		'additionalOptions.cardDimensionsWebpage': { body: { cardOptions: { dimensions: 'fluid' } } },
+		'additionalOptions.emailAccess': { body: { sharingOptions: { emailOptions: { access: 'view' } } } },
+		'additionalOptions.emailRecipients': {
+			body: { sharingOptions: { emailOptions: { recipients: ['a@example.com', 'b@example.com'] } } },
+		},
+		'additionalOptions.enableSearchEngineIndexing': { body: { sharingOptions: { enableSearchEngineIndexing: true } } },
+		'additionalOptions.exportAs': { body: { exportAs: 'pdf' } },
+		'additionalOptions.externalAccess': { body: { sharingOptions: { externalAccess: 'comment' } } },
+		'additionalOptions.folderIds': { body: { folderIds: ['fold_a'] } },
+		'additionalOptions.headerFooter': { body: { cardOptions: { headerFooter: { topRight: { type: 'cardNumber' } } } } },
+		'additionalOptions.imageSource': { body: { imageOptions: { source: 'pexels' } } },
+		'additionalOptions.imageStyle': { body: { imageOptions: { style: 'photorealistic' } } },
+		'additionalOptions.language': { body: { textOptions: { language: 'fr' } } },
+		'additionalOptions.numCards': { body: { numCards: 10 } },
+		'additionalOptions.textAmount': { body: { textOptions: { amount: 'detailed' } } },
+		'additionalOptions.themeId': { body: { themeId: 'theme_abc' } },
+		'additionalOptions.title': { body: { title: 'Q3 Results Overview' } },
+		'additionalOptions.tone': { body: { textOptions: { tone: 'professional' } } },
+		'additionalOptions.workspaceAccess': { body: { sharingOptions: { workspaceAccess: 'view' } } },
+		pagesJson: { body: { pages: [{ inputText: 'First page' }, { inputText: 'Second page', path: 'second' }] } },
+		pagesUi: { body: { pages: [{ inputText: 'From fields', path: 'p1' }] } },
+		templateThemeId: { body: { themeId: 'theme_tpl' } },
+		'imageAdditionalFields.referenceImages': {
+			body: { referenceImages: [{ url: 'https://example.com/ref.png', role: 'subject' }] },
+		},
+		'imageAdditionalFields.sizePreset': { body: { sizePreset: 'slide' } },
+		'imageAdditionalFields.imageThemeId': { body: { themeId: 'theme_img' } },
+		'imageAdditionalFields.imageType': { body: { type: 'photo' } },
+		'themeAdditionalFields.query': { qs: { query: 'marketing' } },
+		'folderAdditionalFields.folderQuery': { qs: { query: 'marketing' } },
+	};
+
+	describe('each hook writes exactly its own field', () => {
+		it('covers every hook', () => {
+			assert.deepStrictEqual(hooks.map((h) => h.path).sort(), Object.keys(WRITES).sort());
+		});
+		for (const h of hooks) {
+			it(h.path, async () => {
+				const ro = {};
+				await h.fn.call(context(), ro);
+				assert.deepStrictEqual(ro, WRITES[h.path]);
+			});
+		}
+	});
+
+	describe('sends nothing for a value that would not change the result', () => {
+		const silent = async (path, value, extra = {}) => {
+			const ro = {};
+			const h = hooks.find((x) => x.path === path);
+			await h.fn.call(context({
+				getNodeParameter: (name, fallback) =>
+					name in extra ? extra[name] : name === path ? value : context().getNodeParameter(name, fallback),
+			}), ro);
+			assert.deepStrictEqual(ro, {});
+		};
+		// Pages are always required, so an empty value is an error, not a no-op.
+		for (const h of hooks.filter((x) => !x.path.startsWith('pages'))) {
+			it(`${h.path} = ''`, () => silent(h.path, ''));
+		}
+		it('language=en, the API default', () => silent('additionalOptions.language', 'en'));
+		it('textAmount=medium, the API default', () => silent('additionalOptions.textAmount', 'medium'));
+		it('imageSource=aiGenerated, the API default', () => silent('additionalOptions.imageSource', 'aiGenerated'));
+		it('enableSearchEngineIndexing=false', () => silent('additionalOptions.enableSearchEngineIndexing', false));
+		it('emailAccess with no recipients', () => silent('additionalOptions.emailAccess', 'edit',
+			{ 'additionalOptions.emailRecipients': '' }));
 	});
 });

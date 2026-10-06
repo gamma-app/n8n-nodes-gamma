@@ -110,4 +110,21 @@ describe('generated apiEnums.ts', () => {
 		assert.ok(enums.IMAGE_SOURCE_VALUES.includes('pexels'));
 		assert.deepStrictEqual([...enums.EXPORT_AS_VALUES], ['pdf', 'png', 'pptx']);
 	});
+
+	describe('hand-written dropdowns stay in step with the API', () => {
+		let additional;
+		before(() => {
+			const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
+			additional = new Gamma().description.properties.find((p) => p.name === 'additionalOptions');
+		});
+		const values = (name) => additional.options.find((o) => o.name === name).options
+			.map((o) => o.value).filter(Boolean).sort();
+
+		it('Image Source offers exactly the documented sources', () => {
+			assert.deepStrictEqual(values('imageSource'), [...enums.IMAGE_SOURCE_VALUES]);
+		});
+		it('Export As offers exactly the documented formats', () => {
+			assert.deepStrictEqual(values('exportAs'), [...enums.EXPORT_AS_VALUES]);
+		});
+	});
 });

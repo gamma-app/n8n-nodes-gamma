@@ -19,7 +19,7 @@ describe('assembled description', () => {
 	it('keeps each resource\'s parameters in one contiguous run', () => {
 		// Walk the properties and record the order resources first appear in. If a
 		// resource shows up again after another has started, the assembly order in
-		// actions/versionDescription.ts is wrong.
+		// Gamma.node.ts is wrong.
 		const runs = [];
 		for (const p of properties.slice(1)) {
 			const res = p.displayOptions?.show?.resource;

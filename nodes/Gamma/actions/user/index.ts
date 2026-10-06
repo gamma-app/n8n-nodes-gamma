@@ -8,9 +8,6 @@ import type { INodeProperties } from 'n8n-workflow';
  * Gamma to keeping it, so nothing else in this node depends on it.
  */
 export const userDescription: INodeProperties[] = [
-	// ============================================
-	// USER OPERATIONS  
-	// ============================================
 	{
 		displayName: 'Operation',
 		name: 'operation',
