@@ -57,7 +57,9 @@ describe('live Gamma API', { skip }, () => {
 		try { body = await res.json(); } catch { /* not JSON */ }
 
 		const lines = ['', '  ┌─ /v1.0/me verdict ' + '─'.repeat(40), `  │ GET /v1.0/me -> ${res.status}`];
-		if (res.status === 200) {
+		if (res.status === 401) {
+			lines.push('  │ INCONCLUSIVE: the key was rejected, so this says nothing about /me.');
+		} else if (res.status === 200) {
 			lines.push('  │ EXISTS, but is undocumented.',
 				`  │ Response keys: ${body && typeof body === 'object' ? Object.keys(body).join(', ') : typeof body}`,
 				'  │',
@@ -205,7 +207,8 @@ describe('live Gamma API', { skip }, () => {
 				}),
 			});
 			const started = await start.json();
-			assert.strictEqual(start.status, 200, `${start.status}: ${JSON.stringify(started)}`);
+			// Creates answer 201 since 2026-10; older deployments sent 200.
+			assert.ok([200, 201].includes(start.status), `${start.status}: ${JSON.stringify(started)}`);
 			assert.ok(started.imageGenerationId, 'no imageGenerationId returned');
 			if (started.warnings?.length) {
 				console.log(`\n    warnings: ${started.warnings.map((w) => w.code).join(', ')}`);
@@ -291,7 +294,7 @@ describe('live Gamma API', { skip }, () => {
 				}),
 			});
 			const body = await res.json();
-			assert.strictEqual(res.status, 200, `got ${res.status}: ${JSON.stringify(body)}`);
+			assert.ok([200, 201].includes(res.status), `got ${res.status}: ${JSON.stringify(body)}`);
 			assert.ok(body.generationId, 'no generationId in the response');
 			if (body.warnings) console.log(`\n    warnings: ${body.warnings}\n`);
 		});
@@ -304,6 +307,7 @@ describe('live Gamma API', { skip }, () => {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					inputText: 'A short deck about testing',
+					textMode: 'generate',
 					format: 'presentation',
 					cardOptions: { dimensions: '1x1' },
 				}),
