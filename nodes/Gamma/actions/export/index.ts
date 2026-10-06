@@ -2,9 +2,6 @@ import type { INodeProperties } from 'n8n-workflow';
 
 /** Operations and parameters for the Export resource. */
 export const exportDescription: INodeProperties[] = [
-	// ============================================
-	// EXPORT OPERATIONS
-	// ============================================
 	{
 		displayName: 'Operation',
 		name: 'operation',

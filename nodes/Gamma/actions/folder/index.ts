@@ -1,10 +1,9 @@
-import type { IDataObject, INodeProperties } from 'n8n-workflow';
+import type { INodeProperties } from 'n8n-workflow';
+
+import { sendIfSet } from '../sendIfSet';
 
 /** Operations and parameters for the Folder resource. */
 export const folderDescription: INodeProperties[] = [
-	// ============================================
-	// FOLDER OPERATIONS
-	// ============================================
 	{
 		displayName: 'Operation',
 		name: 'operation',
@@ -69,20 +68,7 @@ export const folderDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. marketing',
 				description: 'Filter folders by name (case-insensitive)',
-				routing: {
-					send: {
-						preSend: [
-							async function (this, requestOptions) {
-								const value = this.getNodeParameter('folderAdditionalFields.folderQuery') as string;
-								if (value) {
-									requestOptions.qs = requestOptions.qs || {};
-									(requestOptions.qs as IDataObject).query = value;
-								}
-								return requestOptions;
-							},
-						],
-					},
-				},
+				routing: sendIfSet('folderAdditionalFields.folderQuery', 'qs.query'),
 			},
 		],
 	},

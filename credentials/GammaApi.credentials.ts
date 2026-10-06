@@ -6,6 +6,8 @@ import {
 	INodeProperties,
 } from 'n8n-workflow';
 
+import { BASE_URL } from '../nodes/Gamma/api';
+
 export class GammaApi implements ICredentialType {
 	name = 'gammaApi';
 	displayName = 'Gamma API';
@@ -40,7 +42,7 @@ export class GammaApi implements ICredentialType {
 	// bad key. Gamma publishes no /me endpoint, so don't test against one.
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: 'https://public-api.gamma.app',
+			baseURL: BASE_URL,
 			url: '/v1.0/themes',
 			method: 'GET',
 		},

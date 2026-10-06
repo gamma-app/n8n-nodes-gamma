@@ -1,3 +1,6 @@
+/** Gamma's public API. */
+export const BASE_URL = 'https://public-api.gamma.app';
+
 /**
  * The `User-Agent` every request from this node carries.
  *

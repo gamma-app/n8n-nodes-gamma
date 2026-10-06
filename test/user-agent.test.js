@@ -1,11 +1,11 @@
 // The node stamps its own User-Agent so Gamma's public-API analytics can tell
 // this node apart from a hand-rolled HTTP Request node. Two things can silently
-// break that: the version in userAgent.ts drifting behind package.json, and a
+// break that: the version in api.ts drifting behind package.json, and a
 // request path that skips the header and so inherits n8n's default UA.
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
-const { USER_AGENT } = require('../dist/nodes/Gamma/userAgent.js');
+const { USER_AGENT } = require('../dist/nodes/Gamma/api.js');
 const { version } = require('../package.json');
 
 describe('User-Agent', () => {
@@ -14,7 +14,7 @@ describe('User-Agent', () => {
 	});
 
 	it('tracks the published package version', () => {
-		// If this fails, bump VERSION in nodes/Gamma/userAgent.ts to match
+		// If this fails, bump VERSION in nodes/Gamma/api.ts to match
 		// package.json — a stale version misattributes every request.
 		assert.strictEqual(USER_AGENT, `n8n-nodes-gamma/${version}`);
 	});

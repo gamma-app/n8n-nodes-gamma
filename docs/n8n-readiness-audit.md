@@ -319,11 +319,9 @@ These are checked by human review for verification:
   mode — copy `database.sqlite-wal` alongside the main file or recent writes look
   like they were never saved.
 
-- **Full `@n8n/node-cli` migration.** `build` is still `tsc && gulp build:icons`
-  rather than `n8n-node build`, and `dev` is still `tsc --watch` (with
-  `dev:n8n` added alongside for the real thing). n8n only "strongly suggests"
-  its scaffolding, and swapping the build out is a larger change best done on
-  its own.
+- **Full `@n8n/node-cli` migration.** `build` is now `n8n-node build` (its
+  output was byte-identical to the old `tsc && gulp build:icons`). `dev` is
+  still `tsc --watch`, with `dev:n8n` alongside for the real thing.
 
 ---
 

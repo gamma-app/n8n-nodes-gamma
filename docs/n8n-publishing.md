@@ -109,8 +109,8 @@ ls dist/nodes/*/*.svg dist/nodes/*/*.png 2>/dev/null
 ```
 
 - [ ] Every path in the `n8n` block exists after a clean build.
-- [ ] Icons are copied into `dist` (this is what `gulp build:icons` is for).
-- [ ] A stale `dist` cannot hide a broken build: `rm -rf dist && npm run build`.
+- [ ] Icons are copied into `dist` (`n8n-node build` does this; the icon tests check the bytes).
+- [ ] A stale `dist` cannot hide a broken build: `n8n-node build` clears it first.
 
 ### 1.4 Codex file (`*.node.json`)
 
@@ -253,12 +253,11 @@ npm run dev:n8n      # -> n8n-node dev
 ```
 
 (`npm run dev` is still plain `tsc --watch`, for when you only want a type-check
-loop. The build itself is still `tsc && gulp build:icons` rather than
-`n8n-node build`.)
+loop. `npm run build` is `n8n-node build`.)
 
 ### 2.3 Fallback: `npm link` into `~/.n8n/custom`
 
-Works with the current tsc + gulp build:
+Works with the `n8n-node build` output:
 
 ```bash
 npm install -g n8n
