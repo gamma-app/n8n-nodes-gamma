@@ -61,10 +61,15 @@ credits.
 
 | Resource | Operation | Description |
 | --- | --- | --- |
-| **Generation** | Create | Generate a presentation, document, webpage or social post |
-| | Create from Template | Remix an existing Gamma with a new prompt |
-| | Get Status | Poll a generation until it completes |
-| **Gamma** | Get | Retrieve metadata for an existing Gamma |
+| **Generation** | Create with Gamma 5 | Have Gamma's agent plan, write and design a presentation, document or social post |
+| | Create (Classic) | Generate on the classic engine. Also builds webpages and honours themes, text modes and headers/footers |
+| | Create From Template | Remix an existing Gamma with a new prompt (classic) |
+| | Create Multi-Page | Up to 50 pages in one File, optionally published as a site (classic) |
+| | Get Status | Poll a generation from either engine until it completes |
+| **Gamma** | Search | Full-text search over your Gammas, one item per hit |
+| | Get | Retrieve metadata for an existing Gamma |
+| | Edit | Apply a natural-language edit to one page (Gamma 5) |
+| | Get Edit Status | Poll an edit until it completes |
 | | Export | Start an export to PDF, PNG or PPTX |
 | | Archive | Archive a Gamma (idempotent) |
 | | Delete | Delete permanently (requires workspace admin) |
@@ -73,8 +78,28 @@ credits.
 | **Folder** | List | Browse workspace folders |
 | **User** | Get User Information | Account and plan limits behind the API key |
 
-Theme and Folder are also available as searchable pickers wherever a Gamma is
-created, so you select from a list instead of pasting an ID.
+| **Image** | Create, Get Status, Archive Media | Standalone on-brand image generation |
+| **Comment** | Get Many | Comment threads on a Gamma |
+| **Analytics** | Get Document, Get Cards, Get Many Viewers, Get Viewer | Engagement metrics for a Gamma |
+
+Theme, Folder and Template are also available as searchable pickers wherever a
+Gamma is created, so you select from a list instead of pasting an ID.
+
+### Gamma 5 and classic
+
+Both engines run side by side. New Gamma nodes default to **Create with
+Gamma 5**. Workflows built before it keep **Create (Classic)**: they are on node
+version 1, and n8n never moves a saved node to a new version.
+
+Use classic when you need something Gamma 5 does not do yet: webpages, a
+specific theme, multi-page Files, or classic's text controls (Text Mode, Card
+Split, headers and footers). Gamma 5 rejects those settings instead of
+ignoring them.
+
+A Gamma 5 job can take up to about 25 minutes, or about 40 with an export. Keep
+polling the same `generationId` rather than creating again, or you get a
+duplicate. Too many jobs running at once in a workspace returns `429` with
+`Retry-After: 60`.
 
 ### Gamma ID formats
 
@@ -206,20 +231,11 @@ requirements: [`docs/n8n-publishing.md`](docs/n8n-publishing.md).
 
 ## Roadmap
 
-Current coverage is 11 operations across 6 resources. The Gamma API exposes
-more; these are the gaps, roughly in priority order.
-
 **Planned**
 
-- **Standalone image generation** — `POST /images` and its status endpoint, so
-  workflows can generate on-brand images without creating a Gamma
-- **Comments** — read comment threads, with `updatedSince` for efficient delta
-  polling
-- **Analytics** — document, per-card and per-viewer engagement metrics
-- **Multi-page generation** — the `pages` array, building a multi-page File in
-  one request and optionally publishing it as a site
 - **Auto-pagination** on list operations, so they emit one item per result
   instead of a page wrapper
+- **Multi-page on Gamma 5**, once Gamma's agent API supports it
 
 **Blocked**
 

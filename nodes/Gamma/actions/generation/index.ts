@@ -1,8 +1,8 @@
 import { NodeOperationError } from 'n8n-workflow';
-import type { IDataObject, INode, INodeProperties } from 'n8n-workflow';
+import type { IDataObject, INode, INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
 import { sendIfSet } from '../sendIfSet';
-import { createDescription } from './create.operation';
+import { createAgentDescription, createDescription } from './create.operation';
 
 const multiPageShow = { resource: ['generation'], operation: ['createMultiPage'] };
 
@@ -54,73 +54,93 @@ function validatePages(pages: unknown, node: INode): PageInput[] {
 	return pages as PageInput[];
 }
 
-/** Operations and parameters for the Generation resource. Create lives in its own file for its size. */
-export const generationDescription: INodeProperties[] = [
-	// Operations
+const operationOptions: INodePropertyOptions[] = [
 	{
-		displayName: 'Operation',
-		name: 'operation',
-		type: 'options',
-		noDataExpression: true,
-		displayOptions: {
-			show: {
-				resource: ['generation'],
+		name: 'Create (Classic)',
+		value: 'create',
+		action: 'Create generation',
+		description: 'Create a presentation, document, social post or webpage on the classic engine',
+		routing: {
+			request: {
+				method: 'POST',
+				url: '/v1.0/generations',
 			},
 		},
-		options: [
-			{
-				name: 'Create',
-				value: 'create',
-				action: 'Create generation',
-				description: 'Create a new presentation, document, social post, or webpage',
-				routing: {
-					request: {
-						method: 'POST',
-						url: '/v1.0/generations',
-					},
-				},
-			},
-			{
-				name: 'Create Multi-Page',
-				value: 'createMultiPage',
-				action: 'Create multi page file',
-				description:
-					'Generate a file of up to 50 pages in one request, optionally published as a Gamma site',
-				routing: {
-					request: {
-						method: 'POST',
-						url: '/v1.0/generations',
-					},
-				},
-			},
-			{
-				name: 'Create From Template',
-				value: 'createFromTemplate',
-				action: 'Create from template',
-				description: 'Remix an existing Gamma with new prompt',
-				routing: {
-					request: {
-						method: 'POST',
-						url: '/v1.0/generations/from-template',
-					},
-				},
-			},
-			{
-				name: 'Get Status',
-				value: 'getStatus',
-				action: 'Get generation status',
-				description: 'Check the status of a generation',
-				routing: {
-					request: {
-						method: 'GET',
-						url: '=/v1.0/generations/{{$parameter["generationId"]}}',
-					},
-				},
-			},
-		],
-		default: 'create',
 	},
+	{
+		name: 'Create From Template',
+		value: 'createFromTemplate',
+		action: 'Create from template',
+		description: 'Remix an existing Gamma with new prompt (classic engine)',
+		routing: {
+			request: {
+				method: 'POST',
+				url: '/v1.0/generations/from-template',
+			},
+		},
+	},
+	{
+		name: 'Create Multi-Page',
+		value: 'createMultiPage',
+		action: 'Create multi page file',
+		description:
+			'Generate a file of up to 50 pages in one request, optionally published as a Gamma site (classic engine)',
+		routing: {
+			request: {
+				method: 'POST',
+				url: '/v1.0/generations',
+			},
+		},
+	},
+	{
+		name: 'Create with Gamma 5',
+		value: 'createAgent',
+		action: 'Create with gamma 5',
+		description: 'Have the Gamma 5 agent plan, write and design a presentation, document or social post',
+		routing: {
+			request: {
+				method: 'POST',
+				url: '/v1.0/agent/generations',
+			},
+		},
+	},
+	{
+		name: 'Get Status',
+		value: 'getStatus',
+		action: 'Get generation status',
+		description: 'Check the status of a generation from either engine',
+		routing: {
+			request: {
+				method: 'GET',
+				// Gamma 5 IDs start with gen_ and live under /agent; classic IDs do not.
+				url: '=/v1.0/{{ $parameter["generationId"].startsWith("gen_") ? "agent/" : "" }}generations/{{$parameter["generationId"]}}',
+			},
+		},
+	},
+];
+
+/** The Operation selector, once per node version: only the default differs. */
+const operation = (version: number, defaultOperation: string): INodeProperties => ({
+	displayName: 'Operation',
+	name: 'operation',
+	type: 'options',
+	noDataExpression: true,
+	displayOptions: {
+		show: {
+			resource: ['generation'],
+			'@version': [version],
+		},
+	},
+	options: operationOptions,
+	default: defaultOperation,
+});
+
+/** Operations and parameters for the Generation resource. Create lives in its own file for its size. */
+export const generationDescription: INodeProperties[] = [
+	operation(1, 'create'),
+	operation(2, 'createAgent'),
 	...createDescription,
+	...createAgentDescription,
 	// Create Multi-Page
 	{
 		displayName:
@@ -406,8 +426,9 @@ export const generationDescription: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '',
-		placeholder: 'e.g. abc123xyz',
-		description: 'Generation ID returned from Create Generation operation',
+		placeholder: 'e.g. gen_V1StGXR8Z5jdHi6B',
+		description:
+			'The generationId a Create operation returned. Gamma 5 IDs start with gen_; either kind works here.',
 		displayOptions: {
 			show: {
 				resource: ['generation'],

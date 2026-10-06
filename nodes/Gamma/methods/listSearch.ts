@@ -43,7 +43,7 @@ async function searchWorkspaceResource(
 	};
 }
 
-/** Backs the Theme and Folder resource-locator pickers. */
+/** Backs the Theme, Folder and Template resource-locator pickers. */
 export const listSearch = {
 
 	async searchThemes(
@@ -66,5 +66,35 @@ export const listSearch = {
 		paginationToken?: string,
 	): Promise<INodeListSearchResult> {
 		return await searchWorkspaceResource.call(this, '/v1.0/folders', filter, paginationToken);
+	},
+
+	/**
+	 * Workspace templates, then Gamma's official ones. The endpoint returns at
+	 * most 25 of each and has no cursor, so there is no paging.
+	 */
+	async searchTemplates(this: ILoadOptionsFunctions, filter?: string): Promise<INodeListSearchResult> {
+		const qs: IDataObject = { limit: 25 };
+		if (filter) qs.q = filter;
+		const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'gammaApi', {
+			method: 'GET',
+			baseURL: BASE_URL,
+			url: '/v1.0/templates/search',
+			qs,
+			json: true,
+			headers: { 'User-Agent': USER_AGENT },
+		})) as { workspaceTemplates?: IDataObject[]; exploreTemplates?: IDataObject[] };
+
+		const toResult = (description: string) => (item: IDataObject) => ({
+			name: (item.title as string) ?? (item.id as string),
+			value: item.id as string,
+			url: item.url as string,
+			description,
+		});
+		return {
+			results: [
+				...(response.workspaceTemplates ?? []).map(toResult('Workspace template')),
+				...(response.exploreTemplates ?? []).map(toResult('Gamma template')),
+			],
+		};
 	},
 };

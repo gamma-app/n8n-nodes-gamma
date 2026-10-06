@@ -4,12 +4,18 @@
 // through another's.
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const { NodeHelpers } = require('n8n-workflow');
 const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
 
 const node = new Gamma();
 const properties = node.description.properties;
 const resourceParam = properties.find((p) => p.name === 'resource');
 const declaredResources = resourceParam.options.map((o) => o.value);
+
+/** Whether n8n's editor shows `p` for these parameter values on this node version. */
+const shown = (p, params, version) => NodeHelpers.displayParameter(
+	params, p, { name: 'Gamma', type: 'gamma', typeVersion: version, position: [0, 0], parameters: params },
+	node.description, params);
 
 describe('assembled description', () => {
 	it('puts the resource selector first', () => {
@@ -34,11 +40,12 @@ describe('assembled description', () => {
 		}
 	});
 
-	it('declares an operation parameter for every resource in the selector', () => {
-		for (const resource of declaredResources) {
-			const ops = properties.filter(
-				(p) => p.name === 'operation' && p.displayOptions?.show?.resource?.includes(resource));
-			assert.strictEqual(ops.length, 1, `${resource} has ${ops.length} operation parameters`);
+	it('declares one operation parameter per resource and node version', () => {
+		for (const version of node.description.version) {
+			for (const resource of declaredResources) {
+				const ops = properties.filter((p) => p.name === 'operation' && shown(p, { resource }, version));
+				assert.strictEqual(ops.length, 1, `${resource} v${version} has ${ops.length} operation parameters`);
+			}
 		}
 	});
 
@@ -51,19 +58,30 @@ describe('assembled description', () => {
 		}
 	});
 
-	it('has no duplicate parameter names within a resource', () => {
-		const byResource = new Map();
-		for (const p of properties.slice(1)) {
-			const key = p.displayOptions.show.resource.join('+');
-			if (!byResource.has(key)) byResource.set(key, []);
-			byResource.get(key).push(p.name);
+	it('never shows two parameters with the same name at once', () => {
+		// Operations may reuse a name (Format, Additional Options) as long as the
+		// editor never shows both, so check what is visible per operation.
+		for (const version of node.description.version) {
+			for (const resource of declaredResources) {
+				const operation = properties.find((p) => p.name === 'operation' && shown(p, { resource }, version));
+				for (const { value } of operation.options) {
+					const params = { resource, operation: value };
+					const names = properties.filter((p) => shown(p, params, version)).map((p) => p.name);
+					const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+					assert.deepStrictEqual(dupes, [], `${resource}:${value} v${version} shows duplicates: ${dupes}`);
+				}
+			}
 		}
-		for (const [resource, names] of byResource) {
-			// `operation` is legitimately once per resource; anything else repeating
-			// means two modules exported the same parameter.
-			const dupes = names.filter((n, i) => names.indexOf(n) !== i);
-			assert.deepStrictEqual(dupes, [], `${resource} declares duplicates: ${dupes}`);
-		}
+	});
+
+	it('defaults Generation to classic on v1 and Gamma 5 on v2', () => {
+		// n8n omits default-valued parameters from saved workflows, so v1's default
+		// must never change: existing workflows would silently switch engines.
+		const defaultFor = (version) => properties.find(
+			(p) => p.name === 'operation' && shown(p, { resource: 'generation' }, version)).default;
+		assert.strictEqual(defaultFor(1), 'create');
+		assert.strictEqual(defaultFor(2), 'createAgent');
+		assert.strictEqual(node.description.defaultVersion, 2);
 	});
 
 	it('exposes the listSearch methods the pickers reference', () => {

@@ -21,7 +21,11 @@ export class Gamma implements INodeType {
 		name: 'gamma',
 		icon: 'file:gamma.svg',
 		group: ['transform'],
-		version: 1,
+		// v2 makes Generation: Create with Gamma 5 the default operation. v1 keeps
+		// Create (Classic): n8n omits default-valued parameters from saved
+		// workflows, so changing v1's default would silently move them to Gamma 5.
+		version: [1, 2],
+		defaultVersion: 2,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Create AI-powered presentations, documents, and websites with Gamma',
 		defaults: {
@@ -76,7 +80,7 @@ export class Gamma implements INodeType {
 					{
 						name: 'Gamma',
 						value: 'gamma',
-						description: 'Read, export, archive or delete an existing Gamma',
+						description: 'Search, read, edit, export, archive or delete existing Gammas',
 					},
 					{
 						name: 'Generation',

@@ -17,7 +17,7 @@ const { Gamma } = require('../dist/nodes/Gamma/Gamma.node.js');
 const node = new Gamma();
 
 const TOP_LEVEL = new Set(['resource', 'operation', 'templateThemeId', 'generationId', 'inputText',
-	'pagesJson', 'pagesUi']);
+	'pagesJson', 'pagesUi', 'searchQuery']);
 
 // Canned values per parameter name.
 const VALUES = {
@@ -32,6 +32,11 @@ const VALUES = {
 	cardDimensionsPresentation: '16x9', cardDimensionsDocument: 'a4',
 	cardDimensionsSocial: '1x1', cardDimensionsWebpage: 'fluid',
 	title: 'Q3 Results Overview',
+	// Gamma 5 and the agent edit and search operations
+	quality: 'max', disableConnectors: true, templateId: 'g_tpl',
+	sourceUrls: 'https://example.com/a, https://example.com/b',
+	searchQuery: 'climate', createdBy: 'me', includeArchived: true,
+	updatedAfter: '2026-06-01T00:00:00', updatedBefore: '2026-08-01T00:00:00',
 	// Image resource
 	imagePrompt: 'A cyclist on a coastal road at sunrise',
 	imageType: 'photo', sizePreset: 'slide', imageThemeId: 'theme_img',
@@ -50,7 +55,8 @@ function collectHooks() {
 		for (const p of props || []) {
 			const here = [...path, p.name];
 			for (const fn of p.routing?.send?.preSend || []) {
-				hooks.push({ name: p.name, path: here.join('.'), fn });
+				// Gamma 5 reuses some classic options as-is; count each hook once.
+				if (!hooks.some((h) => h.fn === fn)) hooks.push({ name: p.name, path: here.join('.'), fn });
 			}
 			if (Array.isArray(p.options)) walk(p.options.filter((o) => o && o.name && o.type), here);
 		}
@@ -138,7 +144,8 @@ describe('preSend hooks', () => {
 			assert.deepStrictEqual(body.cardOptions.headerFooter, { topRight: { type: 'cardNumber' } });
 		});
 		it('splits and trims list values', () => {
-			assert.deepStrictEqual(body.folderIds, ['fold_a']);
+			assert.strictEqual(body.folderId, 'fold_a');
+			assert.deepStrictEqual(body.sourceUrls, ['https://example.com/a', 'https://example.com/b']);
 			assert.deepStrictEqual(body.sharingOptions.emailOptions.recipients,
 				['a@example.com', 'b@example.com']);
 		});
@@ -210,7 +217,19 @@ describe('preSend hooks', () => {
 		'additionalOptions.enableSearchEngineIndexing': { body: { sharingOptions: { enableSearchEngineIndexing: true } } },
 		'additionalOptions.exportAs': { body: { exportAs: 'pdf' } },
 		'additionalOptions.externalAccess': { body: { sharingOptions: { externalAccess: 'comment' } } },
-		'additionalOptions.folderIds': { body: { folderIds: ['fold_a'] } },
+		'additionalOptions.folderIds': { body: { folderId: 'fold_a' } },
+		'additionalOptions.disableConnectors': { body: { disableConnectors: true } },
+		'additionalOptions.quality': { body: { quality: 'max' } },
+		'additionalOptions.sourceUrls': { body: { sourceUrls: ['https://example.com/a', 'https://example.com/b'] } },
+		'additionalOptions.templateId': { body: { templateId: 'g_tpl' } },
+		'editOptions.disableConnectors': { body: { disableConnectors: true } },
+		'editOptions.quality': { body: { quality: 'max' } },
+		searchQuery: { qs: { q: 'climate' } },
+		'searchFilters.createdBy': { qs: { createdBy: 'me' } },
+		'searchFilters.includeArchived': { qs: { includeArchived: true } },
+		'searchFilters.limit': { qs: { limit: 50 } },
+		'searchFilters.updatedAfter': { qs: { updatedAfter: '2026-06-01T00:00:00' } },
+		'searchFilters.updatedBefore': { qs: { updatedBefore: '2026-08-01T00:00:00' } },
 		'additionalOptions.headerFooter': { body: { cardOptions: { headerFooter: { topRight: { type: 'cardNumber' } } } } },
 		'additionalOptions.imageSource': { body: { imageOptions: { source: 'pexels' } } },
 		'additionalOptions.imageStyle': { body: { imageOptions: { style: 'photorealistic' } } },
@@ -236,7 +255,8 @@ describe('preSend hooks', () => {
 
 	describe('each hook writes exactly its own field', () => {
 		it('covers every hook', () => {
-			assert.deepStrictEqual(hooks.map((h) => h.path).sort(), Object.keys(WRITES).sort());
+			// A path can carry two hooks (Number of Cards on each engine); both must write the same.
+			assert.deepStrictEqual([...new Set(hooks.map((h) => h.path))].sort(), Object.keys(WRITES).sort());
 		});
 		for (const h of hooks) {
 			it(h.path, async () => {
