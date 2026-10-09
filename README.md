@@ -129,8 +129,10 @@ Three things make this easy to get wrong:
 - Text with **no** separator produces a *single* card, which usually reads as a
   bug rather than a setting.
 
-`Preserve` keeps your wording exactly as supplied — the right choice whenever
-text must not be reworded: dosages, legal terms, contract clauses, pricing.
+`Preserve` keeps your structure and card count, but it is not verbatim: in
+testing, Gamma title-cased headings and added prose and layout blocks to each
+card. Where exact text matters (dosages, legal terms, pricing), check the
+output before sending it on.
 
 ### Generate and wait for the result
 

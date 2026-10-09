@@ -23,9 +23,9 @@ The mechanics matter, and they are easy to get wrong:
 - N separators produce N+1 cards. So `join`, don't wrap: joining 6 rows with
   `\n---\n` gives 5 separators and 6 cards.
 
-The workflow uses **Text Mode: Preserve** as well, which keeps your wording
-exactly as supplied. That is the right choice whenever the text must not be
-reworded — dosages, legal terms, contract clauses, pricing.
+The workflow uses **Text Mode: Preserve** as well, which keeps each row's
+content and the card count. It is not verbatim: Gamma may re-case headings and
+add prose, so check the output wherever exact wording matters.
 
 The Code node is the whole trick:
 

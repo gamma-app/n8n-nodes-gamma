@@ -31,6 +31,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Folder now sends `folderId`** instead of the deprecated one-item
   `folderIds` array. Classic accepts both, Gamma 5 accepts only `folderId`, and
   Gamma plans to remove `folderIds`.
+- **Text Mode: Preserve no longer claims to be verbatim.** In testing, Gamma
+  title-cased headings and added prose to each card, so the node and README
+  no longer recommend it for dosages or legal text without checking the output.
+- **Both example workflows' polling loops are fixed.** `auto-polling` used an
+  If operator that doesn't exist, and both looped forever on a failed
+  generation. They now stop on any status other than `pending`.
 - Create is now labelled **Create (Classic)**. Its stored value is still
   `create`, so saved workflows are unaffected.
 

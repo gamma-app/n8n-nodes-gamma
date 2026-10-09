@@ -60,7 +60,7 @@ export const createDescription: INodeProperties[] = [
 			{
 				name: 'Preserve',
 				value: 'preserve',
-				description: 'Use the input text as written. Choose this when wording must not change, such as dosages, legal terms or contract clauses.',
+				description: 'Keep your content and structure rather than rewriting it. Not verbatim: Gamma may re-case headings and add detail, so check the output where exact wording matters.',
 			},
 		],
 		default: 'generate',
