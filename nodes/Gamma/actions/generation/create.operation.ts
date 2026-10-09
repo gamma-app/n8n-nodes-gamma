@@ -60,7 +60,7 @@ export const createDescription: INodeProperties[] = [
 			{
 				name: 'Preserve',
 				value: 'preserve',
-				description: 'Use the input text as written. Choose this when wording must not change, such as dosages, legal terms or contract clauses.',
+				description: 'Keep your content and structure rather than rewriting it. Not verbatim: Gamma may re-case headings and add detail, so check the output where exact wording matters.',
 			},
 		],
 		default: 'generate',
@@ -396,7 +396,9 @@ export const createDescription: INodeProperties[] = [
 											{ description: 'Gamma places a generation in at most one folder. Remove the extra IDs and keep one.' },
 										);
 									}
-									setPath(requestOptions, 'body.folderIds', ids);
+									// folderId, not the deprecated one-item folderIds array: both engines
+									// accept it, and Gamma 5 rejects folderIds.
+									setPath(requestOptions, 'body.folderId', ids[0]);
 								}
 								return requestOptions;
 							},
@@ -614,5 +616,148 @@ export const createDescription: INodeProperties[] = [
 				routing: sendIfSet('additionalOptions.workspaceAccess', 'body.sharingOptions.workspaceAccess'),
 			},
 		],
+	},
+];
+
+// Create with Gamma 5
+const showAgent = { resource: ['generation'], operation: ['createAgent'] };
+
+// Folder, sharing and export behave the same on both engines, so Gamma 5 reuses
+// those options and their preSend hooks as they are.
+const SHARED_OPTIONS = ['emailAccess', 'emailRecipients', 'exportAs', 'externalAccess', 'folderIds', 'workspaceAccess'];
+const classicOptions = createDescription.find((p) => p.name === 'additionalOptions')!.options as INodeProperties[];
+
+const agentOptions: INodeProperties[] = [
+	...classicOptions.filter((o) => SHARED_OPTIONS.includes(o.name)),
+	{
+		displayName: 'Additional Instructions',
+		name: 'additionalInstructions',
+		type: 'string',
+		typeOptions: { rows: 2 },
+		default: '',
+		placeholder: 'e.g. Formal tone. Audience is the board. Keep text minimal.',
+		description: 'Extra direction such as tone, audience, language or style. The agent treats it as guidance (max 5000 characters).',
+		routing: sendIfSet('additionalOptions.additionalInstructions', 'body.additionalInstructions'),
+	},
+	{
+		displayName: 'Disable Connectors',
+		name: 'disableConnectors',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to stop the agent reading the workspace connectors, such as Notion or Slack, for this run',
+		routing: sendIfSet('additionalOptions.disableConnectors', 'body.disableConnectors'),
+	},
+	{
+		displayName: 'Number of Cards',
+		name: 'numCards',
+		type: 'number',
+		typeOptions: { minValue: 1, maxValue: 100 },
+		default: 10,
+		description: 'Target number of cards. The agent may land a card or two either side. Your plan caps it (10 on Free, 100 on paid plans).',
+		routing: sendIfSet('additionalOptions.numCards', 'body.numCards'),
+	},
+	{
+		displayName: 'Quality',
+		name: 'quality',
+		type: 'options',
+		options: [
+			{ name: 'Default', value: '', description: 'The workspace default, within your plan' },
+			{ name: 'Lite', value: 'lite' },
+			{ name: 'Max', value: 'max', description: 'Needs a plan that includes it' },
+			{ name: 'Standard', value: 'standard' },
+		],
+		default: '',
+		description: 'The quality preset, as offered in the Gamma app',
+		routing: sendIfSet('additionalOptions.quality', 'body.quality'),
+	},
+	{
+		displayName: 'Source URLs',
+		name: 'sourceUrls',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. https://example.com/q3-report, https://example.com/roadmap',
+		description: 'Comma-separated http(s) pages for the agent to read as source material (max 10). One it cannot read is skipped.',
+		routing: {
+			send: {
+				preSend: [
+					async function (this, requestOptions) {
+						const value = this.getNodeParameter('additionalOptions.sourceUrls') as string;
+						const urls = value.split(',').map((url) => url.trim()).filter(Boolean);
+						if (urls.length) setPath(requestOptions, 'body.sourceUrls', urls);
+						return requestOptions;
+					},
+				],
+			},
+		},
+	},
+	{
+		displayName: 'Template',
+		name: 'templateId',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
+		description: 'A workspace or official Gamma template to start from. Leave empty to let the agent choose a design.',
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchTemplates',
+					searchable: true,
+					searchFilterRequired: false,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				hint: 'A template ID, or the ID of any Gamma in your workspace',
+			},
+		],
+		routing: sendIfSet('additionalOptions.templateId', 'body.templateId', { extractValue: true }),
+	},
+];
+
+/**
+ * Parameters for Generation: Create with Gamma 5. Gamma 5 takes a brief, not
+ * classic's text-handling settings. It has no webpage format and no theme
+ * field, and it rejects either rather than ignoring them.
+ */
+export const createAgentDescription: INodeProperties[] = [
+	{
+		displayName: 'Prompt',
+		name: 'prompt',
+		type: 'string',
+		required: true,
+		typeOptions: { rows: 4 },
+		default: '',
+		placeholder: 'e.g. A 10-card investor update for Q3 covering revenue, churn and roadmap',
+		description: 'The brief: what to make. The agent plans, writes and designs from it (max ~400,000 characters).',
+		displayOptions: { show: showAgent },
+		routing: { request: { body: { prompt: '={{ $value }}' } } },
+	},
+	{
+		displayName: 'Format',
+		name: 'format',
+		type: 'options',
+		options: [
+			{ name: 'Presentation', value: 'presentation' },
+			{ name: 'Document', value: 'document' },
+			{ name: 'Social Post', value: 'social' },
+		],
+		default: 'presentation',
+		description: 'Output format. Gamma 5 cannot build webpages yet; use Create (Classic) for one.',
+		displayOptions: { show: showAgent },
+		routing: { request: { body: { format: '={{ $value }}' } } },
+	},
+	{
+		displayName: 'Additional Options',
+		name: 'additionalOptions',
+		type: 'collection',
+		placeholder: 'Add option',
+		default: {},
+		displayOptions: { show: showAgent },
+		// Sorted here, as the linter cannot see into an assembled list.
+		options: agentOptions.sort((a, b) => a.displayName.localeCompare(b.displayName)),
 	},
 ];

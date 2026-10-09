@@ -21,6 +21,12 @@ const DOCUMENTED = new Set([
 	'POST /v1.0/generations',
 	'POST /v1.0/generations/from-template',
 	'GET /v1.0/generations/{id}',
+	// Gamma 5, published in the OpenAPI spec 2026-10-05 (gamma#39692).
+	'POST /v1.0/agent/generations',
+	'GET /v1.0/agent/generations/{id}',
+	'POST /v1.0/agent/gammas/{id}/edits',
+	'GET /v1.0/agent/edits/{id}',
+	'GET /v1.0/gammas/search',
 	'POST /v1.0/images',
 	'GET /v1.0/images/{id}',
 	'POST /v1.0/images/media/{id}/archive',
@@ -40,6 +46,12 @@ const DOCUMENTED = new Set([
 
 /** Collapse an expression-interpolated path segment to {id} for comparison. */
 const normalise = (url) => url.replace(/^=/, '').replace(/\{\{[^}]*\}\}/g, '{id}');
+
+// Get Status picks the engine from the ID, so one URL stands for two endpoints.
+const ENGINE_SWITCH = '{{ $parameter["generationId"].startsWith("gen_") ? "agent/" : "" }}';
+const signatures = ({ method, url }) => (url.includes(ENGINE_SWITCH)
+	? [url.replace(ENGINE_SWITCH, 'agent/'), url.replace(ENGINE_SWITCH, '')]
+	: [url]).map((u) => `${method} ${normalise(u)}`);
 
 describe('request defaults', () => {
 	it('points at the production API', () => {
@@ -105,9 +117,14 @@ describe('operations', () => {
 		});
 	}
 
+	it('Get Status polls the engine that made the generation', () => {
+		const status = operations.find((o) => o.operation === 'getStatus');
+		assert.deepStrictEqual(signatures(status.routing.request),
+			['GET /v1.0/agent/generations/{id}', 'GET /v1.0/generations/{id}']);
+	});
+
 	it('routes only to documented endpoints', () => {
-		const undocumented = operations
-			.map((op) => `${op.routing.request.method} ${normalise(op.routing.request.url)}`)
+		const undocumented = [...new Set(operations.flatMap((op) => signatures(op.routing.request)))]
 			.filter((sig) => !DOCUMENTED.has(sig));
 
 		// GET /v1.0/me appears nowhere in Gamma's published docs, but a live call

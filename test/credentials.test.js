@@ -78,7 +78,7 @@ describe('resource locator backward compatibility', () => {
 	it('a legacy string folder still reaches the request body', async () => {
 		const ro = { body: {} };
 		await hookFor('folderIds').call(ctx('legacy_folder_id'), ro);
-		assert.deepStrictEqual(ro.body.folderIds, ['legacy_folder_id']);
+		assert.strictEqual(ro.body.folderId, 'legacy_folder_id');
 	});
 
 	it('an empty picker selection sends nothing at all', async () => {

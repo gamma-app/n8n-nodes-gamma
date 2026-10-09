@@ -80,14 +80,14 @@
           "string": [
             {
               "value1": "={{ $json.status }}",
-              "operation": "equals",
-              "value2": "completed"
+              "operation": "notEqual",
+              "value2": "pending"
             }
           ]
         }
       },
       "id": "if-completed",
-      "name": "Is Completed?",
+      "name": "Finished?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
@@ -163,25 +163,7 @@
       "main": [
         [
           {
-            "node": "Is Completed?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Completed?": {
-      "main": [
-        [
-          {
-            "node": "✅ Generation Complete!",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Wait Before Retry",
+            "node": "Finished?",
             "type": "main",
             "index": 0
           }
@@ -193,6 +175,24 @@
         [
           {
             "node": "Gamma: Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finished?": {
+      "main": [
+        [
+          {
+            "node": "✅ Generation Complete!",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Before Retry",
             "type": "main",
             "index": 0
           }

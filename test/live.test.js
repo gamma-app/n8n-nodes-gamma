@@ -57,7 +57,9 @@ describe('live Gamma API', { skip }, () => {
 		try { body = await res.json(); } catch { /* not JSON */ }
 
 		const lines = ['', '  ┌─ /v1.0/me verdict ' + '─'.repeat(40), `  │ GET /v1.0/me -> ${res.status}`];
-		if (res.status === 200) {
+		if (res.status === 401) {
+			lines.push('  │ INCONCLUSIVE: the key was rejected, so this says nothing about /me.');
+		} else if (res.status === 200) {
 			lines.push('  │ EXISTS, but is undocumented.',
 				`  │ Response keys: ${body && typeof body === 'object' ? Object.keys(body).join(', ') : typeof body}`,
 				'  │',
@@ -121,6 +123,15 @@ describe('live Gamma API', { skip }, () => {
 			const filtered = await methods.searchThemes.call(ctx, term);
 			assert.ok(Array.isArray(filtered.results), 'search returned no array');
 			console.log(`\n    filter "${term}" -> ${filtered.results.length} of ${all.results.length}\n`);
+		});
+
+		it('the Template picker returns workspace and official templates', async () => {
+			const result = await methods.searchTemplates.call(ctx, 'sales');
+			assert.ok(Array.isArray(result.results), 'no results array');
+			for (const r of result.results) assert.ok(r.name && r.value);
+			const counts = {};
+			for (const r of result.results) counts[r.description] = (counts[r.description] ?? 0) + 1;
+			console.log(`\n    "sales" -> ${JSON.stringify(counts)}\n`);
 		});
 
 		it('the Folder picker returns folders without erroring', async () => {
@@ -196,7 +207,8 @@ describe('live Gamma API', { skip }, () => {
 				}),
 			});
 			const started = await start.json();
-			assert.strictEqual(start.status, 200, `${start.status}: ${JSON.stringify(started)}`);
+			// Creates answer 201 since 2026-10; older deployments sent 200.
+			assert.ok([200, 201].includes(start.status), `${start.status}: ${JSON.stringify(started)}`);
 			assert.ok(started.imageGenerationId, 'no imageGenerationId returned');
 			if (started.warnings?.length) {
 				console.log(`\n    warnings: ${started.warnings.map((w) => w.code).join(', ')}`);
@@ -207,6 +219,64 @@ describe('live Gamma API', { skip }, () => {
 			const body = await status.json();
 			assert.ok(['pending', 'completed', 'failed'].includes(body.status));
 			console.log(`\n    image ${started.imageGenerationId} -> ${body.status}\n`);
+		});
+	});
+
+	// Gamma 5. The agent DTO rejects unknown keys and nulls, so a 400 here for a
+	// field the node sends means the node is building a request Gamma 5 refuses.
+	describe('gamma 5', () => {
+		const post = (path, body) => call(path, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+
+		it('the agent generation endpoint is open to this key', async () => {
+			// Validation runs after the feature-flag guard, so 400 (not 404) proves
+			// the route is live for this key without starting a job.
+			const res = await post('/v1.0/agent/generations', { format: 'presentation' });
+			assert.strictEqual(res.status, 400, `expected 400 for a missing prompt, got ${res.status}`);
+		});
+
+		it('refuses classic-only fields rather than ignoring them', async () => {
+			const res = await post('/v1.0/agent/generations', { prompt: 'x', textMode: 'generate' });
+			assert.strictEqual(res.status, 400, `textMode was accepted (${res.status}); revisit the shared options`);
+		});
+
+		it('Search returns hits, or 403 while search is still being rolled out', async () => {
+			const res = await call('/v1.0/gammas/search?q=deck&limit=3');
+			assert.ok([200, 403].includes(res.status), `got ${res.status}`);
+			if (res.status === 200) {
+				const body = await res.json();
+				assert.ok(Array.isArray(body.hits), 'no hits array for the node to split into items');
+			}
+			console.log(`\n    gammas/search -> ${res.status}\n`);
+		});
+
+		it('generates with every option the node sends, and Get Status finds it by its gen_ ID', {
+			skip: process.env.GAMMA_LIVE_GENERATE ? false : 'set GAMMA_LIVE_GENERATE=1 (spends credits)',
+		}, async () => {
+			const res = await post('/v1.0/agent/generations', {
+				prompt: 'A 3-card overview of how tides work, for a general audience',
+				format: 'presentation',
+				numCards: 3,
+				quality: 'lite',
+				disableConnectors: true,
+				additionalInstructions: 'Keep text minimal.',
+				sourceUrls: ['https://en.wikipedia.org/wiki/Tide'],
+				sharingOptions: { workspaceAccess: 'view', externalAccess: 'noAccess' },
+				exportAs: 'pdf',
+			});
+			const started = await res.json();
+			assert.strictEqual(res.status, 202, `${res.status}: ${JSON.stringify(started)}`);
+			assert.match(started.generationId, /^gen_/);
+
+			// The URL the node's Get Status builds for a gen_ ID.
+			const status = await call(`/v1.0/agent/generations/${started.generationId}`);
+			assert.strictEqual(status.status, 200);
+			const body = await status.json();
+			assert.ok(['pending', 'completed', 'failed'].includes(body.status));
+			console.log(`\n    ${started.generationId} -> ${body.status}; warnings: ${JSON.stringify(started.warnings)}\n`);
 		});
 	});
 
@@ -224,7 +294,7 @@ describe('live Gamma API', { skip }, () => {
 				}),
 			});
 			const body = await res.json();
-			assert.strictEqual(res.status, 200, `got ${res.status}: ${JSON.stringify(body)}`);
+			assert.ok([200, 201].includes(res.status), `got ${res.status}: ${JSON.stringify(body)}`);
 			assert.ok(body.generationId, 'no generationId in the response');
 			if (body.warnings) console.log(`\n    warnings: ${body.warnings}\n`);
 		});
@@ -237,6 +307,7 @@ describe('live Gamma API', { skip }, () => {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					inputText: 'A short deck about testing',
+					textMode: 'generate',
 					format: 'presentation',
 					cardOptions: { dimensions: '1x1' },
 				}),

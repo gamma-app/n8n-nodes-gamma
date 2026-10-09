@@ -7,7 +7,38 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Gamma 5.** Gamma's agent engine, alongside classic, in the same node:
+  - **Generation: Create with Gamma 5** (`POST /v1.0/agent/generations`). Takes
+    a Prompt and a Format (presentation, document or social; no webpage), plus
+    optional Quality, Number of Cards, Template (searchable, workspace or
+    official), Source URLs, Additional Instructions, Disable Connectors, and
+    the folder, sharing and export options classic already had.
+  - **Generation: Get Status** polls either engine. Gamma 5 IDs start with
+    `gen_`, and the node routes them to `/v1.0/agent/generations/{id}`.
+  - **Gamma: Edit** and **Gamma: Get Edit Status**, which apply a
+    natural-language edit to one page of an existing Gamma.
+  - **Gamma: Search**, full-text search over titles and text, one item per hit.
+- **Node version 2**, where Generation defaults to Create with Gamma 5. Version
+  1 keeps Create (Classic) as its default. n8n leaves default-valued
+  parameters out of saved workflows, so changing v1's default would have moved
+  every existing Create node to Gamma 5 without anyone choosing it. Existing
+  workflows stay on v1, and nodes added from now on get v2.
+
 ### Changed
+
+- **Folder now sends `folderId`** instead of the deprecated one-item
+  `folderIds` array. Classic accepts both, Gamma 5 accepts only `folderId`, and
+  Gamma plans to remove `folderIds`.
+- **Text Mode: Preserve no longer claims to be verbatim.** In testing, Gamma
+  title-cased headings and added prose to each card, so the node and README
+  no longer recommend it for dosages or legal text without checking the output.
+- **Both example workflows' polling loops are fixed.** `auto-polling` used an
+  If operator that doesn't exist, and both looped forever on a failed
+  generation. They now stop on any status other than `pending`.
+- Create is now labelled **Create (Classic)**. Its stored value is still
+  `create`, so saved workflows are unaffected.
 
 - **`@n8n/node-cli` 0.44.5 -> 0.47.2** (dev toolchain only). Build, lint, tests
   and the enum-drift check all pass on it, and `npm audit` drops from 16

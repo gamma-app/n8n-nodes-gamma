@@ -13,7 +13,7 @@ const op = (value) => gammaOps.find((o) => o.value === value);
 describe('Gamma resource', () => {
 	it('covers the documented lifecycle', () => {
 		assert.deepStrictEqual(gammaOps.map((o) => o.value).sort(),
-			['archive', 'delete', 'export', 'get']);
+			['archive', 'delete', 'edit', 'export', 'get', 'getEditStatus', 'search']);
 	});
 
 	const expected = {
@@ -21,6 +21,9 @@ describe('Gamma resource', () => {
 		export: ['POST', '/v1.0/gammas/{id}/export'],
 		archive: ['POST', '/v1.0/gammas/{id}/archive'],
 		delete: ['DELETE', '/v1.0/gammas/{id}'],
+		edit: ['POST', '/v1.0/agent/gammas/{id}/edits'],
+		getEditStatus: ['GET', '/v1.0/agent/edits/{id}'],
+		search: ['GET', '/v1.0/gammas/search'],
 	};
 
 	for (const [value, [method, path]] of Object.entries(expected)) {
@@ -32,8 +35,8 @@ describe('Gamma resource', () => {
 		});
 	}
 
-	it('interpolates the same identifier parameter into every path', () => {
-		for (const value of Object.keys(expected)) {
+	it('interpolates the same identifier parameter into every per-Gamma path', () => {
+		for (const value of ['get', 'export', 'archive', 'delete', 'edit']) {
 			assert.match(op(value).routing.request.url, /\$parameter\["gammaIdentifier"\]/);
 		}
 	});
