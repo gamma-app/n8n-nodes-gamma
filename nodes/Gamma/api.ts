@@ -18,6 +18,6 @@ export const BASE_URL = 'https://public-api.gamma.app';
  * VERSION must track package.json — `test/user-agent.test.js` fails the build
  * if it drifts.
  */
-const VERSION = '0.5.3';
+const VERSION = '0.6.0';
 
 export const USER_AGENT = `n8n-nodes-gamma/${VERSION}`;

@@ -77,7 +77,6 @@ credits.
 | **Theme** | List | Browse workspace themes |
 | **Folder** | List | Browse workspace folders |
 | **User** | Get User Information | Account and plan limits behind the API key |
-
 | **Image** | Create, Get Status, Archive Media | Standalone on-brand image generation |
 | **Comment** | Get Many | Comment threads on a Gamma |
 | **Analytics** | Get Document, Get Cards, Get Many Viewers, Get Viewer | Engagement metrics for a Gamma |
