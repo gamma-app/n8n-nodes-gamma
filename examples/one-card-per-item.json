@@ -96,10 +96,10 @@
             {
               "id": "done",
               "leftValue": "={{ $json.status }}",
-              "rightValue": "completed",
+              "rightValue": "pending",
               "operator": {
                 "type": "string",
-                "operation": "equals"
+                "operation": "notEquals"
               }
             }
           ],
