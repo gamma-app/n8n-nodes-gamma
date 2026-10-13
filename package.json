@@ -1,6 +1,6 @@
 {
   "name": "@gammatech/n8n-nodes-gamma",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "n8n community node for Gamma - Create AI-powered presentations, documents, and websites",
   "keywords": [
     "n8n-community-node-package",
@@ -25,7 +25,7 @@
     "node": ">=22.22"
   },
   "scripts": {
-    "build": "n8n-node build",
+    "build": "n8n-node build && cp nodes/Gamma/Gamma.node.json dist/nodes/Gamma/",
     "test": "npm run build && node --test",
     "test:live": "npm run build && node --test test/live.test.js",
     "sync:enums": "node scripts/sync-api-enums.mjs",
