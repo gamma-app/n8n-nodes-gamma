@@ -5,6 +5,21 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-13
+
+Fixes from n8n's verification review of 0.6.0.
+
+### Fixed
+
+- **Codex file.** `Gamma.node.json` now names the node `@gammatech/n8n-nodes-gamma.gamma`
+  instead of the bare package name. It also ships: `n8n-node build` never
+  copied it into `dist`, so no published version had one and n8n never saw the
+  node's categories or documentation links.
+
+### Added
+
+- **Dark theme icons** for the node and the credential.
+
 ## [0.6.0] - 2026-10-09
 
 ### Added

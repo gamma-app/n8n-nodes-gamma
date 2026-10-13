@@ -19,7 +19,7 @@ export class Gamma implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Gamma',
 		name: 'gamma',
-		icon: 'file:gamma.svg',
+		icon: { light: 'file:gamma.svg', dark: 'file:gamma.dark.svg' },
 		group: ['transform'],
 		// v2 makes Generation: Create with Gamma 5 the default operation. v1 keeps
 		// Create (Classic): n8n omits default-valued parameters from saved

@@ -1,5 +1,5 @@
 {
-	"node": "@gammatech/n8n-nodes-gamma",
+	"node": "@gammatech/n8n-nodes-gamma.gamma",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": [

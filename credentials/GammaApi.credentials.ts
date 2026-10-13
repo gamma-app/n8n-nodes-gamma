@@ -12,7 +12,7 @@ export class GammaApi implements ICredentialType {
 	name = 'gammaApi';
 	displayName = 'Gamma API';
 	documentationUrl = 'https://developers.gamma.app';
-	icon: Icon = 'file:icons/gamma.svg';
+	icon: Icon = { light: 'file:icons/gamma.svg', dark: 'file:icons/gamma.dark.svg' };
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',

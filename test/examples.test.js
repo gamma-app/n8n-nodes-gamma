@@ -119,7 +119,10 @@ describe('built icon assets', () => {
 	const pairs = [
 		['nodes/Gamma/gamma.png', 'dist/nodes/Gamma/gamma.png'],
 		['nodes/Gamma/gamma.svg', 'dist/nodes/Gamma/gamma.svg'],
+		['nodes/Gamma/Gamma.node.json', 'dist/nodes/Gamma/Gamma.node.json'],
 		['credentials/icons/gamma.svg', 'dist/credentials/icons/gamma.svg'],
+		['nodes/Gamma/gamma.dark.svg', 'dist/nodes/Gamma/gamma.dark.svg'],
+		['credentials/icons/gamma.dark.svg', 'dist/credentials/icons/gamma.dark.svg'],
 	];
 
 	for (const [from, to] of pairs) {

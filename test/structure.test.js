@@ -102,3 +102,11 @@ describe('assembled description', () => {
 		}
 	});
 });
+
+describe('codex', () => {
+	it('names the node as <package>.<node name>', () => {
+		// n8n's review rejects the bare package name, which this shipped with until 0.6.1.
+		const codex = require('../nodes/Gamma/Gamma.node.json');
+		assert.strictEqual(codex.node, `${require('../package.json').name}.${node.description.name}`);
+	});
+});
