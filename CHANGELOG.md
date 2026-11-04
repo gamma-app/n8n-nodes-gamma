@@ -5,6 +5,24 @@ All notable changes to `@gammatech/n8n-nodes-gamma`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Gamma Trigger**, a polling trigger node. Gamma has no webhooks, so until now
+  reacting to Gamma meant a Schedule node, a Get Many, and hand-rolled dedupe.
+  - **Comment Activity** on a chosen Gamma (`GET /v1.0/gammas/{id}/comments`
+    with `updatedSince`), split into **New Comment**, **New Reply** and
+    **Comment Updated** events, one item per event, oldest first.
+  - **Gamma Created or Updated** (`GET /v1.0/gammas/search` with
+    `updatedAfter`), with **Created By** and **Include Archived** filters.
+    Search returns at most 25 hits and has no cursor, so the trigger walks the
+    window backwards with `updatedBefore` to read more.
+  - The first poll records existing activity without emitting it. Each poll
+    re-reads two minutes before its high-water mark and remembers what it
+    emitted there, so late-visible changes are caught and nothing fires twice.
+  - **Gamma** picker (`searchGammas`) backed by `GET /v1.0/gammas/search`.
+
 ## [0.6.1] - 2026-10-13
 
 Fixes from n8n's verification review of 0.6.0.

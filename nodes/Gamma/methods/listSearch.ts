@@ -43,7 +43,7 @@ async function searchWorkspaceResource(
 	};
 }
 
-/** Backs the Theme, Folder and Template resource-locator pickers. */
+/** Backs the Theme, Folder, Template and Gamma resource-locator pickers. */
 export const listSearch = {
 
 	async searchThemes(
@@ -95,6 +95,35 @@ export const listSearch = {
 				...(response.workspaceTemplates ?? []).map(toResult('Workspace template')),
 				...(response.exploreTemplates ?? []).map(toResult('Gamma template')),
 			],
+		};
+	},
+
+	/**
+	 * Gammas the key can access, for the trigger's Gamma picker. Search needs a
+	 * query or a filter, so an empty picker asks for everything updated since
+	 * the epoch, which the API returns most recently updated first. At most 25
+	 * hits and no cursor, so there is no paging.
+	 */
+	async searchGammas(this: ILoadOptionsFunctions, filter?: string): Promise<INodeListSearchResult> {
+		const qs: IDataObject = { limit: 25 };
+		if (filter) qs.q = filter;
+		else qs.updatedAfter = '1970-01-01T00:00:00.000Z';
+		const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'gammaApi', {
+			method: 'GET',
+			baseURL: BASE_URL,
+			url: '/v1.0/gammas/search',
+			qs,
+			json: true,
+			headers: { 'User-Agent': USER_AGENT },
+		})) as { hits?: IDataObject[] };
+
+		return {
+			results: (response.hits ?? []).map((hit) => ({
+				name: (hit.title as string) || 'Untitled',
+				value: hit.id as string,
+				url: hit.url as string,
+				description: (hit.createdBy as string) ?? undefined,
+			})),
 		};
 	},
 };
