@@ -84,6 +84,39 @@ credits.
 Theme, Folder and Template are also available as searchable pickers wherever a
 Gamma is created, so you select from a list instead of pasting an ID.
 
+### Gamma Trigger
+
+A second node, **Gamma Trigger**, starts a workflow when something happens in
+Gamma, so you don't need a Schedule node and a Wait loop to notice it.
+
+| Event | Fires when |
+| --- | --- |
+| **Comment Activity** | Someone comments on a Gamma you pick, replies in a thread, or (if selected) a comment is resolved, reopened, edited or archived |
+| **Gamma Created or Updated** | A Gamma the key can access is created or edited, optionally only those created by a given user |
+
+Comment Activity emits one item per event, not per thread: a new thread with two
+replies is three items, `commentCreated` then two `replyCreated`, oldest first.
+Choose which of **New Comment**, **New Reply** and **Comment Updated** to
+receive under **Trigger On**. Reply items carry the comment they answer
+(`threadContentText`, `threadAuthorName`), so a Slack or email step can quote it
+without another request.
+
+Gamma has no webhooks, so the trigger polls on the interval you set:
+
+- **Activation doesn't replay history.** The first poll records what already
+  exists and emits nothing; only later activity fires.
+- **Each change fires once.** Every poll re-reads the last two minutes before
+  the newest change it has seen, which catches anything that becomes visible
+  late, and remembers what it already emitted in that window.
+- **Gamma Created or Updated fires per saved version.** A Gamma someone is
+  editing can fire on several polls in a row. Search has no creation time, so
+  a new Gamma and an edited one look the same.
+- **One poll reads at most 1,000 changed comment threads or 500 changed
+  Gammas.** Beyond that it logs a warning and moves on; poll more often if a
+  workspace is that busy.
+- **Fetch Test Event** shows the latest matching activity from the last 30 days
+  and doesn't affect what the active workflow will emit.
+
 ### Gamma 5 and classic
 
 Both engines run side by side. New Gamma nodes default to **Create with
@@ -183,6 +216,7 @@ dependency:
 | `credentials` | Resource Locator pickers and list limits |
 | `examples` | Example workflows against the node schema, icon integrity |
 | `enums` | The enum generator's parsing, and the generated output |
+| `trigger` | Gamma Trigger polling state, event splitting and requests, against an in-memory API |
 
 Live tests need a key and are skipped without one:
 

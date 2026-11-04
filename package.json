@@ -25,7 +25,7 @@
     "node": ">=22.22"
   },
   "scripts": {
-    "build": "n8n-node build && cp nodes/Gamma/Gamma.node.json dist/nodes/Gamma/",
+    "build": "n8n-node build && cp nodes/Gamma/Gamma.node.json nodes/Gamma/GammaTrigger.node.json dist/nodes/Gamma/",
     "test": "npm run build && node --test",
     "test:live": "npm run build && node --test test/live.test.js",
     "sync:enums": "node scripts/sync-api-enums.mjs",
@@ -48,7 +48,8 @@
       "dist/credentials/GammaApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Gamma/Gamma.node.js"
+      "dist/nodes/Gamma/Gamma.node.js",
+      "dist/nodes/Gamma/GammaTrigger.node.js"
     ]
   },
   "devDependencies": {
